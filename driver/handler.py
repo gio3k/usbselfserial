@@ -189,14 +189,14 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __event_loop(self) -> None:
         buf = 0
-        try:
-            while buf is not None:
+        while buf is not None:
+            try:
                 buf = os.read(self.__pty_fd, 32)
                 self._handle.bulkWrite(self._write_endpoint, buf, 5000)
                 print("from pty to printer >", buf)
-        except os.error as err:
-            if err.errno not in (errno.EAGAIN, errno.EWOULDBLOCK):
-                raise err
+            except os.error as err:
+                if err.errno not in (errno.EAGAIN, errno.EWOULDBLOCK):
+                    raise err
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         buf = transfer.getBuffer()[:transfer.getActualLength()]
