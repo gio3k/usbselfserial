@@ -209,12 +209,14 @@ def create_pty(ptyname):
     This is mostly / fully taken from the Klipper / Klippy source code:
     https://github.com/Klipper3d/klipper/blob/a709ba43af8edaaa307775ed73cb49fac2b5e550/scripts/avrsim.py#L143
     """
-    mfd, sfd = pty.openpty()
     try:
         os.unlink(ptyname)
     except os.error:
         pass
-    os.symlink(os.ttyname(sfd), ptyname)
+    mfd, sfd = pty.openpty()
+    filename = os.ttyname(sfd)
+    os.chmod(filename, 0o666)
+    os.symlink(filename, ptyname)
     fcntl.fcntl(mfd, fcntl.F_SETFL
                 , fcntl.fcntl(mfd, fcntl.F_GETFL) | os.O_NONBLOCK)
     tcattr = termios.tcgetattr(mfd)
