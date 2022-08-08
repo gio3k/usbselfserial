@@ -167,6 +167,11 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self._device is None:
             raise Exception("USB device not found")
 
+        # Create thread(s)
+        self.__pty_read_thread = Thread(target=self.__pty_read_loop)
+        self.__pty_read_thread.daemon = True
+        self.__pty_read_thread.start()
+
         # Set up hotplug
         if self._context.hasCapability(CAP_HAS_HOTPLUG):
             self._context.hotplugRegisterCallback(self.__hotplug_callback,
@@ -221,11 +226,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__read_transfer.submit()
         print("Started transfers")
 
-        # Create thread(s)
-        self.__pty_read_thread = Thread(target=self.__pty_read_loop)
-        self.__pty_read_thread.daemon = True
-        self.__pty_read_thread.start()
-
         # Set alive status
         self._alive = True
 
@@ -264,8 +264,12 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__write_waiting = False
 
     def __pty_read_loop(self) -> None:
+        if not self._alive:
+            return
         buf = os.read(self.__pty_fd, 128)
         if buf is not None:
+            added = True
+        else:
             added = False
         while buf is not None:
             self.__write_buffer.extend(buf)
