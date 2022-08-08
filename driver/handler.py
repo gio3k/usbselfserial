@@ -265,7 +265,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self.__write_transfer.setBulk(self._write_endpoint, 0, self.__write_callback)
 
         self.__write_queue.task_done()
-        self.__write_transfer.submit()
 
     def __pty_read_loop(self) -> None:
         self.__write_lock.acquire()
@@ -273,6 +272,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         while buf is not None:
             self.__write_queue.put(buf)
             buf = os.read(self.__pty_fd, 32)
+        if self.__write_queue.not_empty:
+            self.__write_transfer.submit()
         self.__write_lock.release()
         pass
 
