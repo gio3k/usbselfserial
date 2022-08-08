@@ -14,7 +14,7 @@ import fcntl
 import termios
 import errno
 from enum import Enum
-from threading import Thread
+from threading import Lock, Thread
 from usb1 import USBContext, USBDevice, USBDeviceHandle, USBInterface, USBEndpoint, USBTransfer
 
 class DataBits(Enum):
@@ -142,6 +142,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self._context = context
         self.__read_transfer = None # reading from USB, going to PTY
         self.__write_transfer = None # writing to USB, coming from PTY
+        self.__write_lock = Lock()
         self.__write_buffer = bytearray()
         self.__pty_fd = None
 
@@ -199,11 +200,15 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         buf = transfer.getBuffer()[:transfer.getActualLength()]
         #print("from printer to pty >", buf.hex())
         #print("from printer to pty full >", transfer.getBuffer().hex())
+        self.__write_lock.acquire()
         os.write(self.__pty_fd, buf)
+        self.__write_lock.release()
         self.__read_transfer.submit()
 
     def __write_callback(self, transfer: USBTransfer) -> None:
+        self.__write_lock.acquire()
         self.__write_buffer = os.read(self.__pty_fd, 32)
+        self.__write_lock.release()
         self.__write_transfer.submit()
 
 def create_pty(ptyname):
