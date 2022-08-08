@@ -267,10 +267,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if not self._alive:
             return
         buf = os.read(self.__pty_fd, 128)
-        if buf is not None:
-            added = True
-        else:
-            added = False
+        print(buf)
         while buf is not None:
             self.__write_buffer.extend(buf)
             buf = os.read(self.__pty_fd, 128)
