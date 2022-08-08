@@ -151,6 +151,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__pty_read_thread = None
         self.__read_transfer = None # reading from USB, going to PTY
         self.__write_transfer = None # writing to USB, coming from PTY
+        self.__write_waiting = False
         self.__write_lock = Lock()
         self.__write_queue = Queue()
         self.__pty_fd = None
@@ -262,7 +263,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self.__write_transfer.setBulk(self._write_endpoint, data, self.__write_callback)
             print("from pty to printer >", data)
         else:
-            self.__write_transfer.setBulk(self._write_endpoint, 0, self.__write_callback)
+            self.__write_waiting = True
 
         self.__write_queue.task_done()
 
@@ -274,7 +275,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             print("adding to queue:", buf)
             buf = os.read(self.__pty_fd, 32)
         if self.__write_queue.not_empty:
-            self.__write_transfer.submit()
+            print("not empty!!!")
+            if self.__write_waiting:
+                self.__write_transfer.submit()
         self.__write_lock.release()
         pass
 
