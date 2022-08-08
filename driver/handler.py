@@ -155,12 +155,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self._device is None:
             raise Exception("USB device not found")
 
-        # Init device
-        self.__open_device()
-
-        # Init pty
-        self.__pty_fd = create_pty(pty_name)
-
         # Set up hotplug
         if self._context.hasCapability(CAP_HAS_HOTPLUG):
             self._context.hotplugRegisterCallback(self.__hotplug_callback,
@@ -168,6 +162,11 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 vendor_id=vendor_id, product_id=product_id)
         else:
             print("USB context doesn't support hotplug")
+            # Init device
+            self.__open_device()
+
+        # Init pty
+        self.__pty_fd = create_pty(pty_name)
 
 
     def __open_device(self, device: USBDevice = None):
