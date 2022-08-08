@@ -16,6 +16,7 @@ import errno
 from enum import Enum
 from threading import Lock, Thread
 from usb1 import USBContext, USBDevice, USBDeviceHandle, USBInterface, USBEndpoint, USBTransfer
+from usb1 import CAP_HAS_HOTPLUG, HOTPLUG_EVENT_DEVICE_ARRIVED, HOTPLUG_EVENT_DEVICE_LEFT
 
 class DataBits(Enum):
     # 5 data bits.
@@ -154,6 +155,27 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self._device is None:
             raise Exception("USB device not found")
 
+        # Init device
+        self.__open_device(vendor_id, product_id)
+
+        # Init pty
+        self.__pty_fd = create_pty(pty_name)
+
+        # Set up hotplug
+        if self._context.hasCapability(CAP_HAS_HOTPLUG):
+            self._context.hotplugRegisterCallback(self.__hotplug_callback,
+                events=HOTPLUG_EVENT_DEVICE_ARRIVED | HOTPLUG_EVENT_DEVICE_LEFT,
+                vendor_id=vendor_id, product_id=product_id)
+        else:
+            print("USB context doesn't support hotplug")
+
+
+    def __open_device(self, device: USBDevice = None):
+        if device is not None:
+            self._device = device
+        elif self._device is None:
+            raise Exception("__open_device was not provided a device!")
+
         self._handle = self._device.open()
         if self._handle is None:
             raise Exception("Failed to open handle")
@@ -170,9 +192,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # Init connection
         self._init()
         print("debug [dev,int,rep,wep]: ", self._device, self._interface, self._read_endpoint, self._write_endpoint)
-
-        # Init PTY
-        self.__pty_fd = create_pty(pty_name)
 
         # Init transfer
         # pt.1: device to pty 
@@ -207,9 +226,18 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __write_callback(self, transfer: USBTransfer) -> None:
         self.__write_lock.acquire()
-        self.__write_buffer = os.read(self.__pty_fd, 32)
+        #self.__write_buffer = os.read(self.__pty_fd, 32)
         self.__write_lock.release()
         self.__write_transfer.submit()
+
+    def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
+        if event is HOTPLUG_EVENT_DEVICE_LEFT:
+            if self._device is not None:
+                self._handle.close()
+                self._device.close()
+                self._device = None
+        else:
+            self.__open_device(device)
 
 def create_pty(ptyname):
     """

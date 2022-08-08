@@ -251,7 +251,3 @@ class Ch34xDeviceHandler(CommonUSBDeviceHandler):
         ret = self.__control_out(0x9A, 0x2518, lcr)
         if ret < 0:
             raise SystemError("Failed to set control byte!")
-
-    def clear_input(self) -> None:
-        while self.__read_queue.qsize():
-            self.__read_queue.get(False)
