@@ -179,8 +179,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 vendor_id=vendor_id, product_id=product_id)
         else:
             print("USB context doesn't support hotplug")
-            # Init device
-            self.__open_device()
+        
+        # Init device
+        self.__open_device()
 
     def __open_device(self, device: USBDevice = None):
         if device is not None:
@@ -280,12 +281,14 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
+            print("device disconnected!")
             if self._device is not None:
                 self._alive = False
                 self._handle.close()
                 self._device.close()
                 self._device = None
-        else:
+        elif event is HOTPLUG_EVENT_DEVICE_ARRIVED:
+            print("device connected!")
             self.__open_device(device)
 
 def create_pty(ptyname):
