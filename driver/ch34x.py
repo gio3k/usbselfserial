@@ -155,10 +155,6 @@ class Ch34xDeviceHandler(CommonUSBDeviceHandler):
         if self.__control_out(0x9A, 0x1805, ctl) < 0:
             raise Exception("Break set failed")
 
-    def _close(self) -> None:
-        self.__transfer.close()
-        self._device.close()
-
     def _init(self) -> None:
         # Get chip version
         verbf = self.__control_in(0x5F, 0, 0, 8)

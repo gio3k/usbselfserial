@@ -16,6 +16,7 @@ def __event_loop():
         if os.path.exists("/tmp/ptyU0"):
             os.unlink("/tmp/ptyU0")
         print('Closing!')
+        device._close()
 
 while True:
     __event_loop()

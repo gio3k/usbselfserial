@@ -11,6 +11,7 @@ Parts rewritten in Python for usbpty!
 import os
 import pty
 import fcntl
+from queue import Queue
 import termios
 import errno
 from enum import Enum
@@ -55,12 +56,18 @@ class BaseUSBDeviceHandler:
     """
 
     def __init__(self) -> None:
+        self._alive: bool = False
         self._context: USBContext = None
         self._device: USBDevice = None
         self._handle: USBDeviceHandle = None
         self._interface: USBInterface = None
         self._write_endpoint: USBEndpoint = None
         self._read_endpoint: USBEndpoint = None
+
+    @property
+    def alive(self) -> bool:
+        """ Returns whether or not the device is active """
+        return self._alive
 
     @property
     def device(self) -> USBDevice:
@@ -141,10 +148,11 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
     def __init__(self, context: USBContext, vendor_id: any, product_id: any, pty_name: any):
         super(CommonUSBDeviceHandler, self).__init__()
         self._context = context
+        self.__pty_read_thread = None
         self.__read_transfer = None # reading from USB, going to PTY
         self.__write_transfer = None # writing to USB, coming from PTY
         self.__write_lock = Lock()
-        self.__write_buffer = bytearray()
+        self.__write_queue = Queue()
         self.__pty_fd = None
 
         # Find device / handle
@@ -198,7 +206,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self.__read_transfer is None:
             raise Exception("Failed to create read transfer")
 
-        self.__read_transfer.setBulk(self._read_endpoint, 32, self.__read_callback, None)
+        self.__read_transfer.setBulk(self._read_endpoint, 32, self.__read_callback)
         print("Prepared device to pty transfer")
 
         # pt.2: pty to device thread
@@ -206,7 +214,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self.__write_transfer is None:
             raise Exception("Failed to create write transfer")
 
-        self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback, None)
+        self.__write_transfer.setBulk(self._write_endpoint, None, self.__write_callback)
         print("Prepared pty to device transfer")
 
         # pt.3: submit transfers
@@ -214,24 +222,66 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__write_transfer.submit()
         print("Started transfers")
 
+        # Create thread(s)
+        self.__pty_read_thread = Thread(target=self.__pty_read_loop)
+        self.__pty_read_thread.daemon = True
+        self.__pty_read_thread.start()
+
+        # Set alive status
+        self._alive = True
+
+    def _close(self) -> None:
+        self._alive = False
+        try:
+            if self.__read_transfer.isSubmitted():
+                self.__read_transfer.cancel()
+            self.__read_transfer.close()
+            if self.__write_transfer.isSubmitted():
+                self.__write_transfer.cancel()
+            self.__write_transfer.close()
+        except:
+            pass
+        self._handle.close()
+        self._device.close()
+
     def __read_callback(self, transfer: USBTransfer) -> None:
+        if not self._alive:
+            return
+            
         buf = transfer.getBuffer()[:transfer.getActualLength()]
-        #print("from printer to pty >", buf.hex())
-        #print("from printer to pty full >", transfer.getBuffer().hex())
         self.__write_lock.acquire()
+        print("from printer to pty >", buf.hex())
+        print("from printer to pty full >", transfer.getBuffer().hex())
         os.write(self.__pty_fd, buf)
         self.__write_lock.release()
         self.__read_transfer.submit()
 
     def __write_callback(self, transfer: USBTransfer) -> None:
-        self.__write_lock.acquire()
-        #self.__write_buffer = os.read(self.__pty_fd, 32)
-        self.__write_lock.release()
+        if not self._alive:
+            return
+        
+        data = self.__write_queue.get()
+        if data:
+            self.__write_transfer.setBulk(self._write_endpoint, data, self.__write_callback)
+        else:
+            self.__write_transfer.setBulk(self._write_endpoint, 1, self.__write_callback)
+
+        self.__write_queue.task_done()
         self.__write_transfer.submit()
+
+    def __pty_read_loop(self) -> None:
+        self.__write_lock.acquire()
+        buf = os.read(self.__pty_fd, 32)
+        while buf is not None:
+            self.__write_queue.put(buf)
+            buf = os.read(self.__pty_fd, 32)
+        self.__write_lock.release()
+        pass
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
             if self._device is not None:
+                self._alive = False
                 self._handle.close()
                 self._device.close()
                 self._device = None
