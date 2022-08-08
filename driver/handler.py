@@ -156,7 +156,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             raise Exception("USB device not found")
 
         # Init device
-        self.__open_device(vendor_id, product_id)
+        self.__open_device()
 
         # Init pty
         self.__pty_fd = create_pty(pty_name)
