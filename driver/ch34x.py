@@ -37,11 +37,11 @@ CH34X_BAUDBASE_FACTOR = 1532620800
 CH34X_BAUDBASE_DIVMAX = 3
 
 class Ch34xDeviceHandler(CommonUSBDeviceHandler):
-    def __init__(self, context: USBContext, vendor_id: any, product_id: any):
+    def __init__(self, context: USBContext, vendor_id: any, product_id: any, pty_name: any):
         self._dtr = False
         self._rts = False
         self._version = None
-        super().__init__(context, vendor_id, product_id)
+        super().__init__(context, vendor_id, product_id, pty_name)
 
     def _set_device_specific(self) -> None:
         self._interface = 0

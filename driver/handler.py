@@ -137,7 +137,7 @@ class BaseUSBDeviceHandler:
         raise Exception("Called base class function!")
 
 class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
-    def __init__(self, context: USBContext, vendor_id: any, product_id: any):
+    def __init__(self, context: USBContext, vendor_id: any, product_id: any, pty_name: any):
         super(CommonUSBDeviceHandler, self).__init__()
         self._context = context
         self.__transfer = None
@@ -169,7 +169,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         print("debug [dev,int,rep,wep]: ", self._device, self._interface, self._read_endpoint, self._write_endpoint)
 
         # Init PTY
-        self.__pty_fd = create_pty("/tmp/ptyU0")
+        self.__pty_fd = create_pty(pty_name)
 
         # Init transfer
         # pt.1: device to pty 
