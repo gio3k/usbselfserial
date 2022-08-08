@@ -153,7 +153,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__write_transfer = None # writing to USB, coming from PTY
         self.__write_waiting = False
         self.__write_lock = Lock()
-        self.__write_queue = Queue()
+        self.__write_buffer = bytearray()
         self.__pty_fd = None
 
         # Init pty
@@ -246,6 +246,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
+            transfer.doom()
             return
             
         buf = transfer.getBuffer()[:transfer.getActualLength()]
@@ -256,30 +257,23 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __write_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
+            transfer.doom()
             return
-        
-        data = self.__write_queue.get()
-        if data:
-            self.__write_transfer.setBulk(self._write_endpoint, data, self.__write_callback)
-            print("from pty to printer >", data)
-            self.__write_transfer.submit()
-        else:
-            self.__write_waiting = True
+
+        self.__write_buffer.clear()
+        self.__write_waiting = False
 
     def __pty_read_loop(self) -> None:
-        self.__write_lock.acquire()
-        buf = os.read(self.__pty_fd, 32)
+        buf = os.read(self.__pty_fd, 128)
         added = False
         while buf is not None:
-            self.__write_queue.put(buf)
-            print("adding to queue:", buf)
+            self.__write_buffer.extend(buf)
+            buf = os.read(self.__pty_fd, 128)
             added = True
-            buf = os.read(self.__pty_fd, 32)
-        if added:
-            print("not empty!!!")
-            if self.__write_waiting:
-                self.__write_transfer.submit()
-        self.__write_lock.release()
+        if added and not self.__write_waiting:
+            self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
+            self.__write_waiting = True
+            self.__write_transfer.submit()
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
