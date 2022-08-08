@@ -140,7 +140,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
     def __init__(self, context: USBContext, vendor_id: any, product_id: any, pty_name: any):
         super(CommonUSBDeviceHandler, self).__init__()
         self._context = context
-        self.__transfer = None
+        self.__read_transfer = None # reading from USB, going to PTY
+        self.__write_transfer = None # writing to USB, coming from PTY
+        self.__write_buffer = bytearray()
         self.__pty_fd = None
 
         # Find device / handle
@@ -173,37 +175,36 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         # Init transfer
         # pt.1: device to pty 
-        self.__transfer = self._handle.getTransfer(0)
-        if self.__transfer is None:
-            raise Exception("Failed to create transfer")
+        self.__read_transfer = self._handle.getTransfer(0)
+        if self.__read_transfer is None:
+            raise Exception("Failed to create read transfer")
 
-        self.__transfer.setBulk(self._read_endpoint, 32, self.__read_callback, None)
-        self.__transfer.submit()
-        print("Started device to pty transfer")
+        self.__read_transfer.setBulk(self._read_endpoint, 32, self.__read_callback, None)
+        print("Prepared device to pty transfer")
 
         # pt.2: pty to device thread
-        self._event_thread = Thread(target=self.__event_loop)
-        self._event_thread.daemon = True
-        self._event_thread.start()
-        print("Started pty to device transfer")
+        self.__write_transfer = self._handle.getTransfer(0)
+        if self.__write_transfer is None:
+            raise Exception("Failed to create write transfer")
 
-    def __event_loop(self) -> None:
-        buf = 0
-        while buf is not None:
-            try:
-                buf = os.read(self.__pty_fd, 32)
-                self._handle.bulkWrite(self._write_endpoint, buf, 5000)
-                #print("from pty to printer >", buf)
-            except os.error as err:
-                if err.errno not in (errno.EAGAIN, errno.EWOULDBLOCK):
-                    raise err
+        self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback, None)
+        print("Prepared pty to device transfer")
+
+        # pt.3: submit transfers
+        self.__read_transfer.submit()
+        self.__write_transfer.submit()
+        print("Started transfers")
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         buf = transfer.getBuffer()[:transfer.getActualLength()]
         #print("from printer to pty >", buf.hex())
         #print("from printer to pty full >", transfer.getBuffer().hex())
         os.write(self.__pty_fd, buf)
-        self.__transfer.submit()
+        self.__read_transfer.submit()
+
+    def __write_callback(self, transfer: USBTransfer) -> None:
+        self.__write_buffer = os.read(self.__pty_fd, 32)
+        self.__write_transfer.submit()
 
 def create_pty(ptyname):
     """
