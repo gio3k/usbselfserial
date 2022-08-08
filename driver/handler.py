@@ -264,21 +264,19 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__write_waiting = False
 
     def __pty_read_loop(self) -> None:
-        if not self._alive:
-            print(self._alive)
-            return
-        print("waiting for buf")
-        buf = os.read(self.__pty_fd, 128)
-        print("buf", buf)
-        while buf is not None:
-            self.__write_buffer.extend(buf)
+        if self._alive:
+            print("waiting for buf")
             buf = os.read(self.__pty_fd, 128)
-            added = True
-        if added and not self.__write_waiting:
-            self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
-            self.__write_waiting = True
-            print("submitting", self.__write_buffer.hex())
-            self.__write_transfer.submit()
+            print("buf", buf)
+            while buf is not None:
+                self.__write_buffer.extend(buf)
+                buf = os.read(self.__pty_fd, 128)
+                added = True
+            if added and not self.__write_waiting:
+                self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
+                self.__write_waiting = True
+                print("submitting", self.__write_buffer.hex())
+                self.__write_transfer.submit()
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
