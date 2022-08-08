@@ -13,7 +13,8 @@ def __event_loop():
         while True:
             ctx.handleEventsTimeout(1)
     except (KeyboardInterrupt, SystemExit):
-        os.unlink("/tmp/ptyU0")
+        if os.path.exists("/tmp/ptyU0"):
+            os.unlink("/tmp/ptyU0")
         print('Closing!')
 
 while True:
