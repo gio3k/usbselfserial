@@ -270,11 +270,13 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
     def __pty_read_loop(self) -> None:
         self.__write_lock.acquire()
         buf = os.read(self.__pty_fd, 32)
+        added = False
         while buf is not None:
             self.__write_queue.put(buf)
             print("adding to queue:", buf)
+            added = True
             buf = os.read(self.__pty_fd, 32)
-        if self.__write_queue.not_empty:
+        if added:
             print("not empty!!!")
             if self.__write_waiting:
                 self.__write_transfer.submit()
