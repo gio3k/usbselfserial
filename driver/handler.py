@@ -269,8 +269,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 continue
             try:
                 buf = os.read(self.__pty_fd, 128)
-                print("buf", buf)
                 while buf is not None:
+                    print("buf", buf)
                     self.__write_buffer.extend(buf)
                     buf = os.read(self.__pty_fd, 128)
                     added = True
@@ -279,8 +279,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                     self.__write_waiting = True
                     print("submitting", self.__write_buffer.hex())
                     self.__write_transfer.submit()
-            except:
-                self._alive = False
+            except e:
+                raise e
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
