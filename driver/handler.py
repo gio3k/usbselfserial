@@ -260,7 +260,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             return
 
         print("wrote", transfer.getActualLength(), "bytes")
-        self.__write_buffer.clear()
+        #self.__write_buffer.clear()
         self.__write_waiting = False
 
     def __pty_read_loop(self) -> None:
