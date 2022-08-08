@@ -11,7 +11,7 @@ device._set_baud_rate(250000)
 def __event_loop():
     try:
         while True:
-            ctx.handleEventsTimeout(1)
+            ctx.handleEventsTimeout(0)
     except (KeyboardInterrupt, SystemExit):
         if os.path.exists("/tmp/ptyU0"):
             os.unlink("/tmp/ptyU0")

@@ -219,7 +219,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         # pt.3: submit transfers
         self.__read_transfer.submit()
-        self.__write_transfer.submit()
         print("Started transfers")
 
         # Create thread(s)
@@ -260,6 +259,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             transfer.doom()
             return
 
+        print("wrote", transfer.getActualLength(), "bytes")
         self.__write_buffer.clear()
         self.__write_waiting = False
 
@@ -273,6 +273,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if added and not self.__write_waiting:
             self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
             self.__write_waiting = True
+            print("submitting", self.__write_buffer.hex())
             self.__write_transfer.submit()
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
