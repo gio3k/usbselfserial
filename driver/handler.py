@@ -265,7 +265,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __pty_read_loop(self) -> None:
         buf = os.read(self.__pty_fd, 128)
-        added = False
+        if buf is not None:
+            added = False
         while buf is not None:
             self.__write_buffer.extend(buf)
             buf = os.read(self.__pty_fd, 128)
