@@ -265,6 +265,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __pty_read_loop(self) -> None:
         if not self._alive:
+            print(self._alive)
             return
         buf = os.read(self.__pty_fd, 128)
         print(buf)
