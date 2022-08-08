@@ -179,9 +179,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 vendor_id=vendor_id, product_id=product_id)
         else:
             print("USB context doesn't support hotplug")
-        
-        # Init device
-        self.__open_device()
+            # Init device
+            self.__open_device()
 
     def __open_device(self, device: USBDevice = None):
         if device is not None:
