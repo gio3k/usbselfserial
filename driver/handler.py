@@ -262,6 +262,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if data:
             self.__write_transfer.setBulk(self._write_endpoint, data, self.__write_callback)
             print("from pty to printer >", data)
+            self.__write_transfer.submit()
         else:
             self.__write_waiting = True
 
