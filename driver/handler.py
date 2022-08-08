@@ -200,7 +200,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         buf = transfer.getBuffer()[:transfer.getActualLength()]
-        print("from printer to pty >", buf)
+        print("from printer to pty >", buf.hex())
+        print("from printer to pty full >", transfer.getBuffer().hex())
         os.write(self.__pty_fd, buf)
         self.__transfer.submit()
 
@@ -217,19 +218,7 @@ def create_pty(ptyname):
     filename = os.ttyname(sfd)
     os.chmod(filename, 0o666)
     os.symlink(filename, ptyname)
-    fcntl.fcntl(mfd, fcntl.F_SETFL
-                , fcntl.fcntl(mfd, fcntl.F_GETFL) | os.O_NONBLOCK)
     tcattr = termios.tcgetattr(mfd)
-    tcattr[0] &= ~(
-        termios.IGNBRK | termios.BRKINT | termios.PARMRK | termios.ISTRIP |
-        termios.INLCR | termios.IGNCR | termios.ICRNL | termios.IXON)
-    tcattr[1] &= ~termios.OPOST
-    tcattr[3] &= ~(
-        termios.ECHO | termios.ECHONL | termios.ICANON | termios.ISIG |
-        termios.IEXTEN)
-    tcattr[2] &= ~(termios.CSIZE | termios.PARENB)
-    tcattr[2] |= termios.CS8
-    tcattr[6][termios.VMIN] = 0
-    tcattr[6][termios.VTIME] = 0
+    tcattr[3] = tcattr[3] & ~termios.ECHO
     termios.tcsetattr(mfd, termios.TCSAFLUSH, tcattr)
     return mfd
