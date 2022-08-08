@@ -268,12 +268,13 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             if not self._alive:
                 continue
             try:
-                self.__write_buffer = os.read(self.__pty_fd, 32)
-                self._handle.bulkWrite(self._write_endpoint, self.__write_buffer, 1000)
-                #self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
-                #self.__write_waiting = True
-                print("submitting", self.__write_buffer.hex())
-                #self.__write_transfer.submit()
+                if not self.__write_waiting:
+                    self.__write_buffer = os.read(self.__pty_fd, 32)
+                    #self._handle.bulkWrite(self._write_endpoint, self.__write_buffer, 1000)
+                    self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
+                    self.__write_waiting = True
+                    print("submitting", self.__write_buffer.hex())
+                    self.__write_transfer.submit()
             except e:
                 raise e
 
