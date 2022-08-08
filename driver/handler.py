@@ -214,7 +214,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self.__write_transfer is None:
             raise Exception("Failed to create write transfer")
 
-        self.__write_transfer.setBulk(self._write_endpoint, None, self.__write_callback)
+        self.__write_transfer.setBulk(self._write_endpoint, 0, self.__write_callback)
         print("Prepared pty to device transfer")
 
         # pt.3: submit transfers
@@ -264,7 +264,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if data:
             self.__write_transfer.setBulk(self._write_endpoint, data, self.__write_callback)
         else:
-            self.__write_transfer.setBulk(self._write_endpoint, 1, self.__write_callback)
+            self.__write_transfer.setBulk(self._write_endpoint, 0, self.__write_callback)
 
         self.__write_queue.task_done()
         self.__write_transfer.submit()
