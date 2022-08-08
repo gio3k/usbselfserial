@@ -265,8 +265,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         else:
             self.__write_waiting = True
 
-        self.__write_queue.task_done()
-
     def __pty_read_loop(self) -> None:
         self.__write_lock.acquire()
         buf = os.read(self.__pty_fd, 32)
@@ -281,7 +279,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             if self.__write_waiting:
                 self.__write_transfer.submit()
         self.__write_lock.release()
-        pass
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
