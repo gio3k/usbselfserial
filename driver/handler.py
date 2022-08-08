@@ -248,11 +248,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             return
             
         buf = transfer.getBuffer()[:transfer.getActualLength()]
-        self.__write_lock.acquire()
         print("from printer to pty >", buf.hex())
         print("from printer to pty full >", transfer.getBuffer().hex())
         os.write(self.__pty_fd, buf)
-        self.__write_lock.release()
         self.__read_transfer.submit()
 
     def __write_callback(self, transfer: USBTransfer) -> None:
@@ -262,6 +260,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         data = self.__write_queue.get()
         if data:
             self.__write_transfer.setBulk(self._write_endpoint, data, self.__write_callback)
+            print("from pty to printer >", data)
         else:
             self.__write_transfer.setBulk(self._write_endpoint, 0, self.__write_callback)
 
