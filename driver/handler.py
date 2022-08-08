@@ -193,15 +193,15 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             try:
                 buf = os.read(self.__pty_fd, 32)
                 self._handle.bulkWrite(self._write_endpoint, buf, 5000)
-                print("from pty to printer >", buf)
+                #print("from pty to printer >", buf)
             except os.error as err:
                 if err.errno not in (errno.EAGAIN, errno.EWOULDBLOCK):
                     raise err
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         buf = transfer.getBuffer()[:transfer.getActualLength()]
-        print("from printer to pty >", buf.hex())
-        print("from printer to pty full >", transfer.getBuffer().hex())
+        #print("from printer to pty >", buf.hex())
+        #print("from printer to pty full >", transfer.getBuffer().hex())
         os.write(self.__pty_fd, buf)
         self.__transfer.submit()
 
