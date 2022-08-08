@@ -268,11 +268,11 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             if not self._alive:
                 continue
             try:
-                buf = os.read(self.__pty_fd, 128)
+                buf = os.read(self.__pty_fd, 32)
                 while buf is not None:
                     print("buf", buf)
                     self.__write_buffer.extend(buf)
-                    buf = os.read(self.__pty_fd, 128)
+                    buf = os.read(self.__pty_fd, 32)
                     added = True
                 if added and not self.__write_waiting:
                     self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
