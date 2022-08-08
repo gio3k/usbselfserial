@@ -271,6 +271,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         buf = os.read(self.__pty_fd, 32)
         while buf is not None:
             self.__write_queue.put(buf)
+            print("adding to queue:", buf)
             buf = os.read(self.__pty_fd, 32)
         if self.__write_queue.not_empty:
             self.__write_transfer.submit()
