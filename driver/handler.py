@@ -219,7 +219,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self.__write_transfer is None:
             raise Exception("Failed to create write transfer")
 
-        self.__write_transfer.setBulk(self._write_endpoint, 0, self.__write_callback)
+        #self.__write_transfer.setBulk(self._write_endpoint, 0, self.__write_callback)
         print("Prepared pty to device transfer")
 
         # pt.3: submit transfers
@@ -277,6 +277,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 self.__write_waiting = True
                 print("submitting", self.__write_buffer.hex())
                 self.__write_transfer.submit()
+        else:
+            print("not doing read_loop, device not awake")
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
