@@ -155,6 +155,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__write_queue = Queue()
         self.__pty_fd = None
 
+        # Init pty
+        self.__pty_fd = create_pty(pty_name)
+
         # Find device / handle
         self._device = self._context.getByVendorIDAndProductID(
             vendor_id,
@@ -172,10 +175,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             print("USB context doesn't support hotplug")
             # Init device
             self.__open_device()
-
-        # Init pty
-        self.__pty_fd = create_pty(pty_name)
-
 
     def __open_device(self, device: USBDevice = None):
         if device is not None:
