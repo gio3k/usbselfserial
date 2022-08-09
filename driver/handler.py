@@ -271,7 +271,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                     self.__write_buffer = os.read(self.__pty_fd, 32)
                     self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
                     self.__write_waiting = True
-                    print("submitting", self.__write_buffer.hex())
+                    #print("submitting", self.__write_buffer.hex())
                     self.__write_transfer.submit()
             except e:
                 raise e
