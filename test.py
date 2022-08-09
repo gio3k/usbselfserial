@@ -15,6 +15,7 @@ def __event_loop():
     except (KeyboardInterrupt, SystemExit):
         if os.path.exists("/tmp/ptyU0"):
             os.unlink("/tmp/ptyU0")
+        device.close()
         print('Closing!')
 
 while True:

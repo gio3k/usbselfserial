@@ -228,7 +228,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # Set alive status
         self._alive = True
 
-    def _close(self) -> None:
+    def close(self) -> None:
         self._alive = False
         try:
             if self.__read_transfer.isSubmitted():
@@ -251,7 +251,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         #print("from printer to pty >", buf.hex())
         #print("from printer to pty full >", transfer.getBuffer().hex())
         os.write(self.__pty_fd, buf)
-        self.__read_transfer.submit()
+        if self._alive:
+            self.__read_transfer.submit()
 
     def __write_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
