@@ -152,7 +152,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__read_transfer = None # reading from USB, going to PTY
         self.__write_transfer = None # writing to USB, coming from PTY
         self.__write_waiting = False
-        self.__write_lock = Lock()
         self.__write_buffer = bytearray()
         self.__pty_fd = None
 
@@ -249,8 +248,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             return
             
         buf = transfer.getBuffer()[:transfer.getActualLength()]
-        print("from printer to pty >", buf.hex())
-        print("from printer to pty full >", transfer.getBuffer().hex())
+        #print("from printer to pty >", buf.hex())
+        #print("from printer to pty full >", transfer.getBuffer().hex())
         os.write(self.__pty_fd, buf)
         self.__read_transfer.submit()
 
@@ -259,7 +258,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             transfer.doom()
             return
 
-        print("wrote", transfer.getActualLength(), "bytes")
+        #print("wrote", transfer.getActualLength(), "bytes")
         #self.__write_buffer.clear()
         self.__write_waiting = False
 
@@ -270,7 +269,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             try:
                 if not self.__write_waiting:
                     self.__write_buffer = os.read(self.__pty_fd, 32)
-                    #self._handle.bulkWrite(self._write_endpoint, self.__write_buffer, 1000)
                     self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
                     self.__write_waiting = True
                     print("submitting", self.__write_buffer.hex())
