@@ -36,12 +36,12 @@ CH34X_DEFAULT_BAUD_RATE = 115200
 CH34X_BAUDBASE_FACTOR = 1532620800
 CH34X_BAUDBASE_DIVMAX = 3
 
-class Ch34xDeviceHandler(CommonUSBDeviceHandler):
+class ModuleDeviceHandler(CommonUSBDeviceHandler):
     """
     Device handler for CH340 / CH341 USB Serial devices.
     Based on code from FreeBSD, Linux and usb-serial-for-android
     """
-    def __init__(self, vendor_id: any, product_id: any, pty_name: any):
+    def __init__(self, vendor_id: hex, product_id: hex, pty_name: any):
         self._dtr = False
         self._rts = False
         self._version = None
