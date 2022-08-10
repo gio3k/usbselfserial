@@ -168,7 +168,7 @@ class BaseUSBDeviceHandler:
         raise Exception("Called base class function!")
 
 class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
-    def __init__(self, vendor_id: hex, product_id: hex, pty_name: any):
+    def __init__(self, vendor_id: hex, product_id: hex, pty_name: any, baud_rate: int):
         super(CommonUSBDeviceHandler, self).__init__()
         self.__read_transfer: USBTransfer = None # reading from USB, going to PTY
         self.__write_transfer: USBTransfer = None # writing to USB, coming from PTY
@@ -180,6 +180,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         self._handled = True
         self._context: USBContext = USBContext()
+        self._baud_rate = baud_rate
 
         # Init pty
         self.__pty_fd = create_pty(pty_name)
@@ -197,6 +198,10 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self._context.hotplugRegisterCallback(self.__hotplug_callback,
                 events=HOTPLUG_EVENT_DEVICE_ARRIVED | HOTPLUG_EVENT_DEVICE_LEFT,
                 vendor_id=vendor_id, product_id=product_id)
+            self._device = self._context.getByVendorIDAndProductID(
+                vendor_id,
+                product_id
+            )
         else:
             print("USB context doesn't support hotplug")
             # Init device
@@ -220,10 +225,19 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             except (KeyboardInterrupt, SystemExit):
                 self._handled = False
             
+        self._handled = False
         self.__thread_pty_read.join()
         self.__thread_ctx_event.join()
 
     def __open_device(self, device: USBDevice = None):
+        if self._handle is not None:
+            print("closing previous handle before opening new device")
+            self._handle.close()
+            self._handle = None
+
+        self.__read_transfer = None
+        self.__write_transfer = None
+
         if device is not None:
             self._device = device
         elif self._device is None:
@@ -272,24 +286,25 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
+            print("dooming!")
             transfer.doom()
             return
-            
-        buf = transfer.getBuffer()[:transfer.getActualLength()]
-        os.write(self.__pty_fd, buf)
-
-        if self._alive:
-            try:
+        try:
+            buf = transfer.getBuffer()[:transfer.getActualLength()]
+            os.write(self.__pty_fd, buf)
+            #print("[to pty]", buf)
+            if self._alive:
                 self.__read_transfer.submit()
-            except (USBError):
-                print("read transfer submit failed... device disconnect?")
-                self._alive = False
+        except (USBError):
+            print("read transfer submit failed... device disconnect?")
+            self._alive = False
 
     def __write_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
             transfer.doom()
             return
 
+        #print("(ack) [to spr]")
         self.__write_waiting = False
 
     def __threadloop_ctx_event(self) -> None:
@@ -297,8 +312,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             if not self._handled:
                 return
             try:
-                while True:
-                    self._context.handleEventsTimeout(0)
+                self._context.handleEventsTimeout(1)
             except (KeyboardInterrupt, SystemExit):
                 self._handled = False
 
@@ -314,6 +328,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                         self.__write_buffer = os.read(self.__pty_fd, 32)
                         self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
                         self.__write_waiting = True
+                        #print("(submitting) [to spr]", self.__write_buffer)
                         self.__write_transfer.submit()
             except (KeyboardInterrupt, SystemExit):
                 self._handled = False
@@ -324,7 +339,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self._alive = False
             self._device = None
         elif event is HOTPLUG_EVENT_DEVICE_ARRIVED:
-            print("device connected!")
+            print("device connected!", device)
             self._device = device
 
 def create_pty(ptyname):
