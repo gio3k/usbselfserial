@@ -37,6 +37,10 @@ CH34X_BAUDBASE_FACTOR = 1532620800
 CH34X_BAUDBASE_DIVMAX = 3
 
 class Ch34xDeviceHandler(CommonUSBDeviceHandler):
+    """
+    Device handler for CH340 / CH341 USB Serial devices.
+    Based on code from FreeBSD, Linux and usb-serial-for-android
+    """
     def __init__(self, context: USBContext, vendor_id: any, product_id: any, pty_name: any):
         self._dtr = False
         self._rts = False
@@ -45,7 +49,6 @@ class Ch34xDeviceHandler(CommonUSBDeviceHandler):
 
     def _set_device_specific(self) -> None:
         self._interface = 0
-
         try:
             self._handle.detachKernelDriver(self._interface)
         except USBErrorAccess:
@@ -139,22 +142,6 @@ class Ch34xDeviceHandler(CommonUSBDeviceHandler):
         if ret < 0:
             raise Exception("(2) failed to set baudrate!")
 
-    def set_break(self, value: bool) -> None:
-        req = self.__control_in(0x95, 0x1805, 0, 2)
-        if (hasattr(req, "__len__") and len(req) == 0) or req == 0:
-            raise Exception("Break check failed")
-
-        if value:
-            req[0] &= ~1
-            req[1] &= ~0x40
-        else:
-            req[0] |= 1
-            req[1] |= 0x40
-        
-        ctl = (req[1] & 0xff) << 8 | (req[0] & 0xff)
-        if self.__control_out(0x9A, 0x1805, ctl) < 0:
-            raise Exception("Break set failed")
-
     def _init(self) -> None:
         # Get chip version
         verbf = self.__control_in(0x5F, 0, 0, 8)
@@ -195,12 +182,28 @@ class Ch34xDeviceHandler(CommonUSBDeviceHandler):
 
         #self._set_baud_rate(CH34X_DEFAULT_BAUD_RATE)
 
+    def set_break(self, value: bool) -> None:
+        req = self.__control_in(0x95, 0x1805, 0, 2)
+        if (hasattr(req, "__len__") and len(req) == 0) or req == 0:
+            raise Exception("Break check failed")
+
+        if value:
+            req[0] &= ~1
+            req[1] &= ~0x40
+        else:
+            req[0] |= 1
+            req[1] |= 0x40
+        
+        ctl = (req[1] & 0xff) << 8 | (req[0] & 0xff)
+        if self.__control_out(0x9A, 0x1805, ctl) < 0:
+            raise Exception("Break set failed")
+
     def set_dtr(self, value: bool):
         self._dtr = value
         self.__set_control_lines()
 
     def set_rts(self, value: bool):
-        self._dtr = value
+        self._rts = value
         self.__set_control_lines()
 
     def set_parameters(self, baud_rate: int, data_bits: int, stop_bits: int, parity: int) -> None:
