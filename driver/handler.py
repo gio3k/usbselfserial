@@ -210,7 +210,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         while True:
             if not self._handled:
-                return
+                break
             try:
                 while True:
                     sleep(1)
