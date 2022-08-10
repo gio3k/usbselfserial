@@ -180,7 +180,7 @@ class Ch34xDeviceHandler(CommonUSBDeviceHandler):
 
         #self.__check_state("init #10", 0x95, 0x0706, [-1, -1])
 
-        #self._set_baud_rate(CH34X_DEFAULT_BAUD_RATE)
+        self._set_baud_rate(self._baud_rate)
 
     def set_break(self, value: bool) -> None:
         req = self.__control_in(0x95, 0x1805, 0, 2)

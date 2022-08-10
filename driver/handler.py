@@ -63,6 +63,7 @@ class BaseUSBDeviceHandler:
         self._interface: USBInterface = None
         self._write_endpoint: USBEndpoint = None
         self._read_endpoint: USBEndpoint = None
+        self._baud_rate: int = 9600
 
     @property
     def alive(self) -> bool:
@@ -94,6 +95,18 @@ class BaseUSBDeviceHandler:
         """ Returns the read endpoint or None """
         return self._read_endpoint
 
+    @property
+    def baud_rate(self) -> int:
+        """ Returns the current baudrate """
+        return self._baud_rate
+
+    @baud_rate.setter
+    def baud_rate(self, value: int) -> None:
+        """ Sets the current baudrate """
+        self._baud_rate = value
+        if self._alive:
+            self._set_baud_rate(value)
+
     def _set_device_specific(self) -> None:
         """
         Needs to be overridden!
@@ -101,6 +114,13 @@ class BaseUSBDeviceHandler:
         Also should claim interfaces & detach kernel drivers
         """
         raise Exception("Called base class function!")
+
+    def _set_baud_rate(self, rate: int) -> None:
+        """
+        Needs to be overridden!
+        Should set baud rate if possible
+        """
+        raise NotImplementedError("Called base class function!")
 
     def _init(self) -> None:
         """
