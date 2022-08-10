@@ -41,11 +41,11 @@ class Ch34xDeviceHandler(CommonUSBDeviceHandler):
     Device handler for CH340 / CH341 USB Serial devices.
     Based on code from FreeBSD, Linux and usb-serial-for-android
     """
-    def __init__(self, context: USBContext, vendor_id: any, product_id: any, pty_name: any):
+    def __init__(self, vendor_id: any, product_id: any, pty_name: any):
         self._dtr = False
         self._rts = False
         self._version = None
-        super().__init__(context, vendor_id, product_id, pty_name)
+        super().__init__(vendor_id, product_id, pty_name)
 
     def _set_device_specific(self) -> None:
         self._interface = 0
