@@ -360,6 +360,8 @@ def create_pty(ptyname):
     filename = os.ttyname(sfd)
     os.chmod(filename, 0o666)
     os.symlink(filename, ptyname)
+    fcntl.fcntl(mfd, fcntl.F_SETFL
+                , fcntl.fcntl(mfd, fcntl.F_GETFL) | os.O_NONBLOCK)
     tcattr = termios.tcgetattr(mfd)
     tcattr[3] = tcattr[3] & ~termios.ECHO
     termios.tcsetattr(mfd, termios.TCSAFLUSH, tcattr)
