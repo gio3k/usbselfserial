@@ -173,7 +173,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__read_transfer: USBTransfer = None # reading from USB, going to PTY
         self.__write_transfer: USBTransfer = None # writing to USB, coming from PTY
         self.__write_waiting: bool = False
-        self.__write_buffer: bytearray = bytearray()
+        self.__write_buffer: bytes = bytes()
 
         self.__thread_pty_read: Thread = None
         self.__thread_ctx_event: Thread = None
@@ -237,7 +237,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         # Make sure previous buffers / data are cleared / ready
         print("clearing buffers!")
-        self.__write_buffer.clear()
+        self.__write_buffer = bytes()
         if self.__pty_fd is not None:
             try:
                 os.read(self.__pty_fd, 1024)
