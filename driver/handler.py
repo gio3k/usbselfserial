@@ -239,7 +239,10 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         print("clearing buffers!")
         self.__write_buffer.clear()
         if self.__pty_fd is not None:
-            os.read(self.__pty_fd, 1024)
+            try:
+                os.read(self.__pty_fd, 1024)
+            except BlockingIOError:
+                pass
         self.__read_transfer = None
         self.__write_transfer = None
 
