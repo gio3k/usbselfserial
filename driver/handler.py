@@ -185,6 +185,11 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # Init pty
         self.__pty_fd = create_pty(pty_name)
 
+        # Start event thread
+        print("Starting event thread!")
+        self.__thread_ctx_event = Thread(target=self.__threadloop_ctx_event)
+        self.__thread_ctx_event.start()
+
         # Set up hotplug
         if self._context.hasCapability(CAP_HAS_HOTPLUG):
             print("Waiting for device...")
@@ -225,21 +230,18 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
     def __start_threads(self):
         # Create thread(s)
         if self.__thread_pty_read is None:
+            print("Starting reader thread!")
             self.__thread_pty_read = Thread(target=self.__threadloop_pty_read)
             self.__thread_pty_read.start()
-
-        if self.__thread_ctx_event is None:
-            self.__thread_ctx_event = Thread(target=self.__threadloop_ctx_event)
-            self.__thread_ctx_event.start()
     
     def __open_device(self, device: USBDevice = None):
         if self._handle is not None:
-            print("closing previous handle before opening new device")
+            print("Closing previous handle before opening new device")
             self._handle.close()
             self._handle = None
 
         # Make sure previous buffers / data are cleared / ready
-        print("clearing buffers!")
+        print("Clearing buffers!")
         self.__write_buffer = bytes()
         self.__read_transfer = None
         self.__write_transfer = None
@@ -305,7 +307,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             if self._alive:
                 self.__read_transfer.submit()
         except (USBError):
-            print("read transfer submit failed... device disconnect?")
+            print("Read transfer submit failed... device disconnect?")
             self._alive = False
             self._device = None
 
@@ -347,11 +349,11 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
-            print("device disconnected!")
+            print("Device disconnected!")
             self._alive = False
             self._device = None
         elif event is HOTPLUG_EVENT_DEVICE_ARRIVED:
-            print("device connected!", device)
+            print("Device connected!", device)
             self._device = device
 
 def create_pty(ptyname):
