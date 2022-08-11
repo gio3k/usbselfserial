@@ -235,6 +235,11 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self._handle.close()
             self._handle = None
 
+        # Make sure previous buffers / data are cleared / ready
+        print("clearing buffers!")
+        self.__write_buffer.clear()
+        if self.__pty_fd is not None:
+            os.read(self.__pty_fd, 1024)
         self.__read_transfer = None
         self.__write_transfer = None
 
