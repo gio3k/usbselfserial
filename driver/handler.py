@@ -185,13 +185,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # Init pty
         self.__pty_fd = create_pty(pty_name)
 
-        # Create thread(s)
-        self.__thread_pty_read = Thread(target=self.__threadloop_pty_read)
-        self.__thread_pty_read.start()
-
-        self.__thread_ctx_event = Thread(target=self.__threadloop_ctx_event)
-        self.__thread_ctx_event.start()
-
         # Set up hotplug
         if self._context.hasCapability(CAP_HAS_HOTPLUG):
             print("Waiting for device...")
@@ -228,7 +221,17 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self._handled = False
         self.__thread_pty_read.join()
         self.__thread_ctx_event.join()
+        
+    def __start_threads(self):
+        # Create thread(s)
+        if self.__thread_pty_read is None:
+            self.__thread_pty_read = Thread(target=self.__threadloop_pty_read)
+            self.__thread_pty_read.start()
 
+        if self.__thread_ctx_event is None:
+            self.__thread_ctx_event = Thread(target=self.__threadloop_ctx_event)
+            self.__thread_ctx_event.start()
+    
     def __open_device(self, device: USBDevice = None):
         if self._handle is not None:
             print("closing previous handle before opening new device")
@@ -267,7 +270,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self._alive = True
 
         # Init transfer
-        # pt.1: device to pty 
+        # pt.1: device to pty
         self.__read_transfer = self._handle.getTransfer(0)
         if self.__read_transfer is None:
             raise Exception("Failed to create read transfer")
@@ -286,6 +289,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # pt.3: submit transfers
         self.__read_transfer.submit()
         print("Started transfers")
+
+        # Make sure threads have started now
+        self.__start_threads()
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
