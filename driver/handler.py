@@ -333,11 +333,14 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                     if not self._alive:
                         continue
                     if not self.__write_waiting:
-                        self.__write_buffer = os.read(self.__pty_fd, 32)
-                        self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
-                        self.__write_waiting = True
-                        #print("(submitting) [to spr]", self.__write_buffer)
-                        self.__write_transfer.submit()
+                        try:
+                            self.__write_buffer = os.read(self.__pty_fd, 32)
+                            self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
+                            self.__write_waiting = True
+                            #print("(submitting) [to spr]", self.__write_buffer)
+                            self.__write_transfer.submit()
+                        except BlockingIOError:
+                            pass
             except (KeyboardInterrupt, SystemExit):
                 self._handled = False
 
