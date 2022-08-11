@@ -306,6 +306,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         except (USBError):
             print("read transfer submit failed... device disconnect?")
             self._alive = False
+            self._device = None
 
     def __write_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
