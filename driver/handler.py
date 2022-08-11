@@ -268,9 +268,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self._init()
         print("debug [dev,int,rep,wep]: ", self._device, self._interface, self._read_endpoint, self._write_endpoint)
 
-        # Set alive status
-        self._alive = True
-
         # Init transfer
         # pt.1: device to pty
         self.__read_transfer = self._handle.getTransfer(0)
@@ -291,6 +288,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # pt.3: submit transfers
         self.__read_transfer.submit()
         print("Started transfers")
+
+        # Set alive status
+        self._alive = True
 
         # Make sure threads have started now
         self.__start_threads()
