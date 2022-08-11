@@ -269,6 +269,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # Set alive status
         self._alive = True
 
+        # Make sure threads have started now
+        self.__start_threads()
+
         # Init transfer
         # pt.1: device to pty
         self.__read_transfer = self._handle.getTransfer(0)
@@ -289,9 +292,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # pt.3: submit transfers
         self.__read_transfer.submit()
         print("Started transfers")
-
-        # Make sure threads have started now
-        self.__start_threads()
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
@@ -336,7 +336,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                         if self.__write_transfer is not None:
                             self.__write_transfer.doom()
                         continue
-                    if not self.__write_waiting:
+                    if self.__write_transfer is not None and not self.__write_waiting:
                         self.__write_buffer = os.read(self.__pty_fd, 32)
                         self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
                         self.__write_waiting = True
