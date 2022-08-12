@@ -170,6 +170,10 @@ class BaseUSBDeviceHandler:
 class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
     def __init__(self, vendor_id: hex, product_id: hex, pty_name: any, baud_rate: int):
         super(CommonUSBDeviceHandler, self).__init__()
+        self.__pty_name: any = pty_name
+        self.__pty_mfd: int = None
+        self.__pty_sfd: int = None
+
         self.__read_transfer: USBTransfer = None # reading from USB, going to PTY
         self.__write_transfer: USBTransfer = None # writing to USB, coming from PTY
         self.__write_waiting: bool = False
@@ -181,9 +185,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self._handled = True
         self._context: USBContext = USBContext()
         self._baud_rate = baud_rate
-
-        # Init pty
-        self.__pty_fd = create_pty(pty_name)
 
         # Start event thread
         print("Starting event thread!")
@@ -268,6 +269,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self._init()
         print("debug [dev,int,rep,wep]: ", self._device, self._interface, self._read_endpoint, self._write_endpoint)
 
+        # Init pty
+        self.__create_pty()
+
         # Init transfer
         # pt.1: device to pty
         self.__read_transfer = self._handle.getTransfer(0)
@@ -302,7 +306,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             return
         try:
             buf = transfer.getBuffer()[:transfer.getActualLength()]
-            os.write(self.__pty_fd, buf)
+            os.write(self.__pty_mfd, buf)
             #print("[to pty]", buf)
             self.__read_transfer.submit()
         except (USBError):
@@ -336,7 +340,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                         self.__write_transfer.doom()
                     continue
                 if self.__write_transfer is not None and not self.__write_waiting:
-                    self.__write_buffer = os.read(self.__pty_fd, 32)
+                    self.__write_buffer = os.read(self.__pty_mfd, 32)
                     self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
                     self.__write_waiting = True
                     #print("(submitting) [to spr]", self.__write_buffer)
@@ -356,21 +360,26 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__write_waiting = False
         self._alive = False
         self._device = None
+        self.__pty_mfd = None
+        self.__pty_sfd = None
 
-def create_pty(ptyname):
-    """
-    This is mostly / fully taken from the Klipper / Klippy source code:
-    https://github.com/Klipper3d/klipper/blob/a709ba43af8edaaa307775ed73cb49fac2b5e550/scripts/avrsim.py#L143
-    """
-    try:
-        os.unlink(ptyname)
-    except os.error:
-        pass
-    mfd, sfd = pty.openpty()
-    filename = os.ttyname(sfd)
-    os.chmod(filename, 0o666)
-    os.symlink(filename, ptyname)
-    tcattr = termios.tcgetattr(mfd)
-    tcattr[3] = tcattr[3] & ~termios.ECHO
-    termios.tcsetattr(mfd, termios.TCSAFLUSH, tcattr)
-    return mfd
+    def __create_pty(self):
+        """
+        This is mostly / fully taken from the Klipper / Klippy source code:
+        https://github.com/Klipper3d/klipper/blob/a709ba43af8edaaa307775ed73cb49fac2b5e550/scripts/avrsim.py#L143
+        """
+        if self.__pty_sfd is not None:
+            os.close(self.__pty_sfd)
+        if self.__pty_mfd is not None:
+            os.close(self.__pty_mfd)
+        try:
+            os.unlink(self.__pty_name)
+        except os.error:
+            pass
+        self.__pty_mfd, self.__pty_sfd = pty.openpty()
+        filename = os.ttyname(self.__pty_sfd)
+        os.chmod(filename, 0o666)
+        os.symlink(filename, self.__pty_name)
+        tcattr = termios.tcgetattr(self.__pty_mfd)
+        tcattr[3] = tcattr[3] & ~termios.ECHO
+        termios.tcsetattr(self.__pty_mfd, termios.TCSAFLUSH, tcattr)
