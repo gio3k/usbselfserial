@@ -397,10 +397,21 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         """
         self.__pty_mfd, self.__pty_sfd = pty.openpty()
         filename = os.ttyname(self.__pty_sfd)
+        print("new pty @", filename)
         os.chmod(filename, 0o666)
         os.symlink(filename, self.__pty_name)
         tcattr = termios.tcgetattr(self.__pty_mfd)
-        tcattr[3] = tcattr[3] & ~termios.ECHO
+        tcattr[0] &= ~(
+        termios.IGNBRK | termios.BRKINT | termios.PARMRK | termios.ISTRIP |
+        termios.INLCR | termios.IGNCR | termios.ICRNL | termios.IXON)
+        tcattr[1] &= ~termios.OPOST
+        tcattr[3] &= ~(
+            termios.ECHO | termios.ECHONL | termios.ICANON | termios.ISIG |
+            termios.IEXTEN)
+        tcattr[2] &= ~(termios.CSIZE | termios.PARENB)
+        tcattr[2] |= termios.CS8
+        tcattr[6][termios.VMIN] = 0
+        tcattr[6][termios.VTIME] = 0
         termios.tcsetattr(self.__pty_mfd, termios.TCSAFLUSH, tcattr)
 
     def __delete_pty(self):
