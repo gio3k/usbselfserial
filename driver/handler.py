@@ -304,7 +304,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
-            print("dooming!")
+            print("Dooming read transfer")
             transfer.doom()
             return
         try:
@@ -318,6 +318,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __write_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
+            print("Dooming write transfer (during callback)")
             transfer.doom()
             return
 
@@ -340,6 +341,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                     return
                 if not self._alive:
                     if self.__write_transfer is not None:
+                        print("Dooming write transfer")
                         self.__write_transfer.doom()
                     continue
                 if self.__write_transfer is not None and not self.__write_waiting:
