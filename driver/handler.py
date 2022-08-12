@@ -360,22 +360,13 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__write_waiting = False
         self._alive = False
         self._device = None
-        self.__pty_mfd = None
-        self.__pty_sfd = None
+        self.__delete_pty()
 
     def __create_pty(self):
         """
         This is mostly / fully taken from the Klipper / Klippy source code:
         https://github.com/Klipper3d/klipper/blob/a709ba43af8edaaa307775ed73cb49fac2b5e550/scripts/avrsim.py#L143
         """
-        if self.__pty_sfd is not None:
-            os.close(self.__pty_sfd)
-        if self.__pty_mfd is not None:
-            os.close(self.__pty_mfd)
-        try:
-            os.unlink(self.__pty_name)
-        except os.error:
-            pass
         self.__pty_mfd, self.__pty_sfd = pty.openpty()
         filename = os.ttyname(self.__pty_sfd)
         os.chmod(filename, 0o666)
@@ -383,3 +374,15 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         tcattr = termios.tcgetattr(self.__pty_mfd)
         tcattr[3] = tcattr[3] & ~termios.ECHO
         termios.tcsetattr(self.__pty_mfd, termios.TCSAFLUSH, tcattr)
+
+    def __delete_pty(self):
+        if self.__pty_sfd is not None:
+            os.close(self.__pty_sfd)
+            self.__pty_sfd = None
+        if self.__pty_mfd is not None:
+            os.close(self.__pty_mfd)
+            self.__pty_mfd = None
+        try:
+            os.unlink(self.__pty_name)
+        except os.error:
+            pass
