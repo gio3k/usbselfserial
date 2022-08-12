@@ -189,6 +189,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # Start event thread
         print("Starting event thread!")
         self.__thread_ctx_event = Thread(target=self.__threadloop_ctx_event)
+        self.__thread_ctx_event.daemon = True
         self.__thread_ctx_event.start()
 
         # Remove previous (if any) pty before starting
@@ -236,6 +237,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self.__thread_pty_read is None:
             print("Starting reader thread!")
             self.__thread_pty_read = Thread(target=self.__threadloop_pty_read)
+            self.__thread_pty_read.daemon = True
             self.__thread_pty_read.start()
     
     def __open_device(self, device: USBDevice = None):
