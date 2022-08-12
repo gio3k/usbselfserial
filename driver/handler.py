@@ -346,7 +346,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             while True:
                 if not self._handled:
                     return
-                self._context.handleEventsTimeout(0)
+                if self._context is not None:
+                    self._context.handleEventsTimeout(0)
         except (KeyboardInterrupt, SystemExit):
             self._handled = False
 
