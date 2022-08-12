@@ -304,8 +304,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             buf = transfer.getBuffer()[:transfer.getActualLength()]
             os.write(self.__pty_fd, buf)
             #print("[to pty]", buf)
-            if self._alive:
-                self.__read_transfer.submit()
+            self.__read_transfer.submit()
         except (USBError):
             print("Read transfer submit failed... device disconnect?")
             self.__handle_disconnect()
