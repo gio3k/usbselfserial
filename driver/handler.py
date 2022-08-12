@@ -336,10 +336,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 if not self._handled:
                     return
                 if not self._alive:
-                    if self.__write_transfer is not None:
-                        print("Dooming write transfer")
-                        self.__write_transfer.doom()
-                        self.__write_transfer = None
                     continue
                 if self.__write_transfer is not None and not self.__write_waiting:
                     try:
