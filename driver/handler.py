@@ -193,12 +193,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__thread_ctx_event.daemon = True
         self.__thread_ctx_event.start()
 
-        # Remove previous (if any) pty before starting
-        self.__delete_pty()
-
-        # Create context
-        self.__create_new_context()
-
         try:
             # Remove previous (if any) pty before starting
             self.__delete_pty()
