@@ -209,13 +209,13 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                     print("opening device:", self._device)
                     self.__open_device()
         except (KeyboardInterrupt, SystemExit):
-                self._handled = False
-        
+            self._handled = False
+
         self.__delete_pty()
         self._handled = False
         self.__thread_pty_read.join()
         self.__thread_ctx_event.join()
-        
+
     def __create_new_context(self):
         self._context: USBContext = USBContext()
 
@@ -245,7 +245,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self.__thread_pty_read = Thread(target=self.__threadloop_pty_read)
             self.__thread_pty_read.daemon = True
             self.__thread_pty_read.start()
-    
+
     def __open_device(self):
         if self._device is None:
             raise Exception("__open_device was not provided a device!")
@@ -265,7 +265,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         # Init connection
         self._init()
-        print("debug [dev,int,rep,wep]: ", self._device, self._interface, self._read_endpoint, self._write_endpoint)
+        print("debug [dev,int,rep,wep]: ",
+            self._device, self._interface, self._read_endpoint, self._write_endpoint)
 
         # Init pty
         self.__create_pty()
@@ -308,7 +309,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 pass # OSError could happen after descriptors are closed
             #print("[to pty]", buf)
             self.__read_transfer.submit()
-        except (USBError):
+        except USBError:
             print("Read transfer submit failed... device disconnect?")
 
     def __write_callback(self, transfer: USBTransfer) -> None:
@@ -340,7 +341,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 if self.__write_transfer is not None and not self.__write_waiting:
                     try:
                         self.__write_buffer = os.read(self.__pty_mfd, 32)
-                        self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
+                        self.__write_transfer.setBulk(
+                            self._write_endpoint, self.__write_buffer, self.__write_callback)
                         self.__write_waiting = True
                         #print("(submitting) [to spr]", self.__write_buffer)
                         self.__write_transfer.submit()
@@ -425,3 +427,4 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             os.unlink(self.__pty_name)
         except os.error:
             pass
+        
