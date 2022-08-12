@@ -173,6 +173,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         self.__dev_vendor_id: hex = vendor_id
         self.__dev_product_id: hex = product_id
+        self.__context_handle_events: bool = True
 
         self.__read_transfer: USBTransfer = None # reading from USB, going to PTY
         self.__write_transfer: USBTransfer = None # writing to USB, coming from PTY
@@ -209,7 +210,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                         self.__open_device()
             except (KeyboardInterrupt, SystemExit):
                 self._handled = False
-            
+        
+        self.__delete_pty()
         self._handled = False
         self.__thread_pty_read.join()
         self.__thread_ctx_event.join()
@@ -218,6 +220,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if self._context is not None:
             self._context.close()
         self._context: USBContext = USBContext()
+        self.__context_handle_events = True
 
         # Set up hotplug
         if self._context.hasCapability(CAP_HAS_HOTPLUG):
@@ -249,17 +252,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self.__thread_pty_read.start()
     
     def __open_device(self, device: USBDevice = None):
-        if self._handle is not None:
-            print("Closing previous handle before opening new device")
-            self._handle.close()
-            self._handle = None
-
-        # Make sure previous buffers / data are cleared / ready
-        print("Clearing buffers!")
-        self.__write_buffer = bytes()
-        self.__read_transfer = None
-        self.__write_transfer = None
-
         if device is not None:
             self._device = device
         elif self._device is None:
@@ -343,8 +335,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             while True:
                 if not self._handled:
                     return
-                if self._context is not None:
-                    self._context.handleEventsTimeout(0)
+                if self._context is not None and self.__context_handle_events:
+                    self._context.handleEventsTimeout(1)
         except (KeyboardInterrupt, SystemExit):
             self._handled = False
 
@@ -380,9 +372,32 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self._device = device
 
     def __handle_disconnect(self):
-        self.__write_waiting = False
         self._alive = False
+        self.__write_buffer = bytes()
+        self.__write_waiting = False
+        self.__context_handle_events = False
+        # close read tx
+        print("Ending read transfer")
+        self.__read_transfer.close()
+        # close write tx
+        print("Ending write transfer")
+        self.__write_transfer.close()
+        # close handle
+        print("Closing device handle")
+        self._handle.close()
+        # close device
+        print("Closing device")
+        self._device.close()
+        # close context
+        print("Closing USB context")
+        self._context.close()
+        # set all to none
+        self.__read_transfer = None
+        self.__write_transfer = None
+        self._handle = None
         self._device = None
+        self._context = None
+        # delete pty
         self.__delete_pty()
 
     def __create_pty(self):
