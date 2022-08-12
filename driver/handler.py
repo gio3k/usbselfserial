@@ -318,32 +318,31 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__write_waiting = False
 
     def __threadloop_ctx_event(self) -> None:
-        while True:
-            if not self._handled:
-                return
-            try:
-                self._context.handleEventsTimeout(1)
-            except (KeyboardInterrupt, SystemExit):
-                self._handled = False
+        try:
+            while True:
+                if not self._handled:
+                    return
+                self._context.handleEventsTimeout(0)
+        except (KeyboardInterrupt, SystemExit):
+            self._handled = False
 
     def __threadloop_pty_read(self) -> None:
-        while True:
-            if not self._handled:
-                return
-            try:
-                while True:
-                    if not self._alive:
-                        if self.__write_transfer is not None:
-                            self.__write_transfer.doom()
-                        continue
-                    if self.__write_transfer is not None and not self.__write_waiting:
-                        self.__write_buffer = os.read(self.__pty_fd, 32)
-                        self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
-                        self.__write_waiting = True
-                        #print("(submitting) [to spr]", self.__write_buffer)
-                        self.__write_transfer.submit()
-            except (KeyboardInterrupt, SystemExit):
-                self._handled = False
+        try:
+            while True:
+                if not self._handled:
+                    return
+                if not self._alive:
+                    if self.__write_transfer is not None:
+                        self.__write_transfer.doom()
+                    continue
+                if self.__write_transfer is not None and not self.__write_waiting:
+                    self.__write_buffer = os.read(self.__pty_fd, 32)
+                    self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
+                    self.__write_waiting = True
+                    #print("(submitting) [to spr]", self.__write_buffer)
+                    self.__write_transfer.submit()
+        except (KeyboardInterrupt, SystemExit):
+            self._handled = False
 
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
