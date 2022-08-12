@@ -173,6 +173,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         self.__dev_vendor_id: hex = vendor_id
         self.__dev_product_id: hex = product_id
+        self.__context_hotplug_handle: int = None
         self.__context_handle_events: bool = True
 
         self.__read_transfer: USBTransfer = None # reading from USB, going to PTY
@@ -216,15 +217,13 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__thread_ctx_event.join()
         
     def __create_new_context(self):
-        if self._context is not None:
-            self._context.close()
         self._context: USBContext = USBContext()
         self.__context_handle_events = True
 
         # Set up hotplug
         if self._context.hasCapability(CAP_HAS_HOTPLUG):
             print("Waiting for device...")
-            self._context.hotplugRegisterCallback(self.__hotplug_callback,
+            self.__context_hotplug_handle = self._context.hotplugRegisterCallback(self.__hotplug_callback,
                 events=HOTPLUG_EVENT_DEVICE_ARRIVED | HOTPLUG_EVENT_DEVICE_LEFT,
                 vendor_id=self.__dev_vendor_id, product_id=self.__dev_product_id)
             self._device = self._context.getByVendorIDAndProductID(
@@ -389,6 +388,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self._device.close()
         # close context
         print("Closing USB context")
+        if self.__context_hotplug_handle is not None:
+            self._context.hotplugDeregisterCallback(self.__context_hotplug_handle)
         self._context.close()
         # set all to none
         self.__read_transfer = None
@@ -396,6 +397,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self._handle = None
         self._device = None
         self._context = None
+        self.__context_hotplug_handle = None
         # delete pty
         self.__delete_pty()
 
