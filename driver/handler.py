@@ -199,16 +199,21 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         # Create context
         self.__create_new_context()
 
-        while True:
-            if not self._handled:
-                break
-            try:
-                while True:
-                    sleep(1)
-                    if not self._alive and self._device is not None:
-                        print("opening device:", self._device)
-                        self.__open_device()
-            except (KeyboardInterrupt, SystemExit):
+        try:
+            # Remove previous (if any) pty before starting
+            self.__delete_pty()
+
+            # Create context
+            self.__create_new_context()
+
+            while True:
+                if not self._handled:
+                    break
+                sleep(1)
+                if not self._alive and self._device is not None:
+                    print("opening device:", self._device)
+                    self.__open_device()
+        except (KeyboardInterrupt, SystemExit):
                 self._handled = False
         
         self.__delete_pty()
