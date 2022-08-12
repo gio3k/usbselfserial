@@ -242,12 +242,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
         # Make sure previous buffers / data are cleared / ready
         print("Clearing buffers!")
-        try:
-            while True:
-                os.read(self.__pty_fd, 32)
-                print("Cleared 32 bytes of pty fd")
-        except BlockingIOError:
-            print("Stopped clearing pty fd")
         self.__write_buffer = bytes()
         self.__read_transfer = None
         self.__write_transfer = None
@@ -308,10 +302,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             return
         try:
             buf = transfer.getBuffer()[:transfer.getActualLength()]
-            try:
-                os.write(self.__pty_fd, buf)
-            except BlockingIOError:
-                pass
+            os.write(self.__pty_fd, buf)
             #print("[to pty]", buf)
             self.__read_transfer.submit()
         except (USBError):
@@ -345,15 +336,11 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                         self.__write_transfer.doom()
                     continue
                 if self.__write_transfer is not None and not self.__write_waiting:
-                    try:
-                        self.__write_buffer = os.read(self.__pty_fd, 32)
-                        self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
-                        self.__write_waiting = True
-                        self.__write_transfer.submit()
-                        print("submitted!!")
-                        #print("(submitting) [to spr]", self.__write_buffer)
-                    except BlockingIOError:
-                        pass
+                    self.__write_buffer = os.read(self.__pty_fd, 32)
+                    self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
+                    self.__write_waiting = True
+                    #print("(submitting) [to spr]", self.__write_buffer)
+                    self.__write_transfer.submit()
         except (KeyboardInterrupt, SystemExit):
             self._handled = False
 
@@ -383,19 +370,7 @@ def create_pty(ptyname):
     filename = os.ttyname(sfd)
     os.chmod(filename, 0o666)
     os.symlink(filename, ptyname)
-    fcntl.fcntl(mfd, fcntl.F_SETFL
-                , fcntl.fcntl(mfd, fcntl.F_GETFL) | os.O_NONBLOCK)
     tcattr = termios.tcgetattr(mfd)
-    tcattr[0] &= ~(
-        termios.IGNBRK | termios.BRKINT | termios.PARMRK | termios.ISTRIP |
-        termios.INLCR | termios.IGNCR | termios.ICRNL | termios.IXON)
-    tcattr[1] &= ~termios.OPOST
-    tcattr[3] &= ~(
-        termios.ECHO | termios.ECHONL | termios.ICANON | termios.ISIG |
-        termios.IEXTEN)
-    tcattr[2] &= ~(termios.CSIZE | termios.PARENB)
-    tcattr[2] |= termios.CS8
-    tcattr[6][termios.VMIN] = 0
-    tcattr[6][termios.VTIME] = 0
+    tcattr[3] = tcattr[3] & ~termios.ECHO
     termios.tcsetattr(mfd, termios.TCSAFLUSH, tcattr)
     return mfd
