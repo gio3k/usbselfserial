@@ -311,7 +311,10 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             return
         try:
             buf = transfer.getBuffer()[:transfer.getActualLength()]
-            os.write(self.__pty_mfd, buf)
+            try:
+                os.write(self.__pty_mfd, buf)
+            except OSError:
+                pass # OSError could happen after descriptors are closed
             #print("[to pty]", buf)
             self.__read_transfer.submit()
         except (USBError):
@@ -347,11 +350,14 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                         self.__write_transfer.doom()
                     continue
                 if self.__write_transfer is not None and not self.__write_waiting:
-                    self.__write_buffer = os.read(self.__pty_mfd, 32)
-                    self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
-                    self.__write_waiting = True
-                    #print("(submitting) [to spr]", self.__write_buffer)
-                    self.__write_transfer.submit()
+                    try:
+                        self.__write_buffer = os.read(self.__pty_mfd, 32)
+                        self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
+                        self.__write_waiting = True
+                        #print("(submitting) [to spr]", self.__write_buffer)
+                        self.__write_transfer.submit()
+                    except OSError:
+                        pass # OSError could happen after descriptors are closed
         except (KeyboardInterrupt, SystemExit):
             self._handled = False
 
