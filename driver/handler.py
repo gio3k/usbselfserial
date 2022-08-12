@@ -246,10 +246,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self.__thread_pty_read.daemon = True
             self.__thread_pty_read.start()
     
-    def __open_device(self, device: USBDevice = None):
-        if device is not None:
-            self._device = device
-        elif self._device is None:
+    def __open_device(self):
+        if self._device is None:
             raise Exception("__open_device was not provided a device!")
 
         self._handle = self._device.open()
@@ -301,8 +299,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
 
     def __read_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
-            print("Dooming read transfer")
-            transfer.doom()
             return
         try:
             buf = transfer.getBuffer()[:transfer.getActualLength()]
@@ -314,7 +310,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             self.__read_transfer.submit()
         except (USBError):
             print("Read transfer submit failed... device disconnect?")
-            self.__handle_disconnect()
 
     def __write_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
