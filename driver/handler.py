@@ -349,10 +349,10 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                         self.__write_buffer = os.read(self.__pty_fd, 32)
                         self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
                         self.__write_waiting = True
+                        self.__write_transfer.submit()
                         #print("(submitting) [to spr]", self.__write_buffer)
                     except BlockingIOError:
                         pass
-                    self.__write_transfer.submit()
         except (KeyboardInterrupt, SystemExit):
             self._handled = False
 
