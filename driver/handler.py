@@ -218,18 +218,13 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         
     def __create_new_context(self):
         self._context: USBContext = USBContext()
-        self.__context_handle_events = True
 
         # Set up hotplug
         if self._context.hasCapability(CAP_HAS_HOTPLUG):
             print("Waiting for device...")
-            self.__context_hotplug_handle = self._context.hotplugRegisterCallback(self.__hotplug_callback,
+            self._context.hotplugRegisterCallback(self.__hotplug_callback,
                 events=HOTPLUG_EVENT_DEVICE_ARRIVED | HOTPLUG_EVENT_DEVICE_LEFT,
                 vendor_id=self.__dev_vendor_id, product_id=self.__dev_product_id)
-            self._device = self._context.getByVendorIDAndProductID(
-                self.__dev_vendor_id,
-                self.__dev_product_id
-            )
         else:
             print("USB context doesn't support hotplug")
             # Init device
@@ -240,6 +235,8 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
             if self._device is None:
                 raise Exception("USB device not found")
             self.__open_device()
+
+        self.__context_handle_events = True
 
     def __start_threads(self):
         # Create thread(s)
