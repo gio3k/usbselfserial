@@ -377,30 +377,31 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__context_handle_events = False
         # close read tx
         print("Ending read transfer")
-        self.__read_transfer.close()
+        if self.__read_transfer is not None:
+            self.__read_transfer.close()
         # close write tx
         print("Ending write transfer")
-        self.__write_transfer.close()
+        if self.__write_transfer is not None:
+            self.__write_transfer.close()
         # close handle
         print("Closing device handle")
-        self._handle.close()
+        if self._handle is not None:
+            self._handle.close()
         # close device
         print("Closing device")
-        self._device.close()
+        if self._device is not None:
+            self._device.close()
         # close context
         print("Closing USB context")
-        if self.__context_hotplug_handle is not None:
-            self._context.hotplugDeregisterCallback(self.__context_hotplug_handle)
-        self._context.close()
+        if self._context is not None:
+            self._context.close()
         # set all to none
+        print("Setting all USB variables to None")
         self.__read_transfer = None
         self.__write_transfer = None
         self._handle = None
         self._device = None
         self._context = None
-        self.__context_hotplug_handle = None
-        # delete pty
-        self.__delete_pty()
 
     def __create_pty(self):
         """
