@@ -308,8 +308,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                 self.__read_transfer.submit()
         except (USBError):
             print("Read transfer submit failed... device disconnect?")
-            self._alive = False
-            self._device = None
+            self.__handle_disconnect()
 
     def __write_callback(self, transfer: USBTransfer) -> None:
         if not self._alive:
@@ -350,11 +349,15 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
     def __hotplug_callback(self, context: USBContext, device: USBDevice, event):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
             print("Device disconnected!")
-            self._alive = False
-            self._device = None
+            self.__handle_disconnect()
         elif event is HOTPLUG_EVENT_DEVICE_ARRIVED:
             print("Device connected!", device)
             self._device = device
+
+    def __handle_disconnect(self):
+        self.__write_waiting = False
+        self._alive = False
+        self._device = None
 
 def create_pty(ptyname):
     """
