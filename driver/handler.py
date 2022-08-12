@@ -346,7 +346,6 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
                     continue
                 if self.__write_transfer is not None and not self.__write_waiting:
                     try:
-                        print("reading attempt")
                         self.__write_buffer = os.read(self.__pty_fd, 32)
                         self.__write_transfer.setBulk(self._write_endpoint, self.__write_buffer, self.__write_callback)
                         self.__write_waiting = True
