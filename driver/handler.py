@@ -10,15 +10,12 @@ Parts rewritten in Python for usbpty!
 """
 import os
 import pty
-import fcntl
-from queue import Queue
 import termios
-import errno
 from enum import Enum
-from threading import Lock, Thread
+from threading import Thread
 from time import sleep
 from usb1 import USBContext, USBDevice, USBDeviceHandle, USBInterface, USBEndpoint, USBTransfer
-from usb1 import USBErrorPipe, USBErrorOther, USBError
+from usb1 import USBError
 from usb1 import CAP_HAS_HOTPLUG, HOTPLUG_EVENT_DEVICE_ARRIVED, HOTPLUG_EVENT_DEVICE_LEFT
 
 class DataBits(Enum):
