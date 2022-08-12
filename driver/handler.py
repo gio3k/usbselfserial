@@ -365,6 +365,7 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         if event is HOTPLUG_EVENT_DEVICE_LEFT:
             print("Device disconnected!")
             self.__handle_disconnect()
+            self.__create_new_context()
         elif event is HOTPLUG_EVENT_DEVICE_ARRIVED:
             print("Device connected!", device)
             self._device = device
