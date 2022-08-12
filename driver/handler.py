@@ -191,6 +191,9 @@ class CommonUSBDeviceHandler(BaseUSBDeviceHandler):
         self.__thread_ctx_event = Thread(target=self.__threadloop_ctx_event)
         self.__thread_ctx_event.start()
 
+        # Remove previous (if any) pty before starting
+        self.__delete_pty()
+
         # Set up hotplug
         if self._context.hasCapability(CAP_HAS_HOTPLUG):
             print("Waiting for device...")
