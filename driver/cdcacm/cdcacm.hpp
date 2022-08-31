@@ -13,7 +13,7 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#include "../../driver.hpp"
+#include "../driver.hpp"
 #include "device.hpp"
 #include "vars.hpp"
 #include <stdio.h>
@@ -26,8 +26,10 @@ namespace usbselfserial {
 namespace driver {
 
 class CdcAcmDriver : public BaseDriver {
-private:
+protected:
     CdcAcmDevice device;
+    bool rts;
+    bool dtr;
 
     /**
      * Send control message to device
@@ -37,7 +39,7 @@ private:
      * @param length Length of data if necessary
      * @return int Return code of transfer
      */
-    int ControlOut(u8_t request, u8_t value, u8_t* data = 0x0, int length = 0) {
+    int ControlOut(u8_t request, u16_t value, u8_t* data = 0x0, u16_t length = 0) {
         return libusb_control_transfer(device.usb_handle, USB_RT_ACM, request,
                                        value, device.interface_comm, data,
                                        length, 2000);
@@ -75,7 +77,7 @@ private:
     }
 
 public:
-    CdcAcmDriver(libusb_device_handle* _handle, int _port) : BaseDriver() {
+    CdcAcmDriver(libusb_device_handle* _handle) : BaseDriver() {
         device.usb_handle = _handle;
         device.usb_device = libusb_get_device(_handle);
 
@@ -148,10 +150,25 @@ public:
         }
 
         printf(
-            "Prepared CDC ACM device. (usb_device %p, usb_handle %p, interfaces "
+            "Prepared CDC ACM device. (usb_device %p, usb_handle %p, "
+            "interfaces "
             "[data 0x%02x, comm 0x%02x], endpoints [out 0x%02x, in 0x%02x])\n",
             device.usb_device, device.usb_handle, device.interface_data,
             device.interface_comm, device.endpoint_out, device.endpoint_in);
+    }
+
+    void SetDTR(bool value) override {
+        dtr = value;
+        UpdateControlLines();
+    }
+
+    void SetRTS(bool value) override {
+        rts = value;
+        UpdateControlLines();
+    }
+
+    void SetBreak(bool value) override {
+        ControlOut(SEND_BREAK, value ? 0xffff : 0);
     }
 };
 

@@ -27,8 +27,6 @@ protected:
     DataBits data_bits;
     StopBits stop_bits;
     Parity parity;
-    bool rts;
-    bool dtr;
 
 public:
     /**
@@ -67,18 +65,17 @@ public:
      * Set new DTR (Data Terminal Ready)
      * @param value New DTR value
      */
-    void SetDTR(bool value) {
-        dtr = value;
-        UpdateControlLines();
-    }
+    virtual void SetDTR(bool value) = 0;
     /**
      * Set new RTS (Request To Send)
      * @param value New RTS value
      */
-    void SetRTS(bool value) {
-        rts = value;
-        UpdateControlLines();
-    }
+    virtual void SetRTS(bool value) = 0;
+    /**
+     * Set new BREAK value
+     * @param value New BREAK value
+     */
+    virtual void SetBreak(bool value) = 0;
 };
 
 } // namespace driver

@@ -19,6 +19,7 @@
 #define SET_LINE_CODING 0x20 // USB CDC 1.1 section 6.2
 #define GET_LINE_CODING 0x21
 #define SET_CONTROL_LINE_STATE 0x22
+#define SEND_BREAK 0x23
 
 // Defines from linux/include/uapi/linux/usb/ch9.h
 #define USB_TYPE_CLASS (0x01 << 5)
