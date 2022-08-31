@@ -28,8 +28,8 @@ namespace driver {
 class CdcAcmDriver : public BaseDriver {
 protected:
     CdcAcmDevice device;
-    bool rts;
-    bool dtr;
+    bool rts = true;
+    bool dtr = true;
 
     /**
      * Send control message to device
@@ -39,7 +39,8 @@ protected:
      * @param length Length of data if necessary
      * @return int Return code of transfer
      */
-    int ControlOut(u8_t request, u16_t value, u8_t* data = 0x0, u16_t length = 0) {
+    int ControlOut(u8_t request, u16_t value, u8_t* data = 0x0,
+                   u16_t length = 0) {
         return libusb_control_transfer(device.usb_handle, USB_RT_ACM, request,
                                        value, device.interface_comm, data,
                                        length, 2000);
@@ -157,6 +158,11 @@ public:
             device.interface_comm, device.endpoint_out, device.endpoint_in);
     }
 
+    void Init() override {
+        UpdateControlLines();
+        Configure();
+    }
+
     void SetDTR(bool value) override {
         dtr = value;
         UpdateControlLines();
@@ -170,6 +176,8 @@ public:
     void SetBreak(bool value) override {
         ControlOut(SEND_BREAK, value ? 0xffff : 0);
     }
+
+    CdcAcmDevice& GetDevice() { return device; }
 };
 
 } // namespace driver
