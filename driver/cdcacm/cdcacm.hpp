@@ -163,6 +163,56 @@ public:
             device.generic.usb_device, device.generic.usb_handle,
             device.interface_data, device.interface_comm,
             device.generic.endpoint_out, device.generic.endpoint_in);
+
+        // Detach interfaces
+        if (libusb_kernel_driver_active(device.generic.usb_handle,
+                                        device.interface_comm)) {
+            ret = libusb_detach_kernel_driver(device.generic.usb_handle,
+                                              device.interface_comm);
+            if (ret != 0) {
+                printf("Failed to detach kernel driver from CDC Communication "
+                       "interface, code %i (%s)\n",
+                       ret, libusb_error_name(ret));
+            }
+        }
+
+        if (libusb_kernel_driver_active(device.generic.usb_handle,
+                                        device.interface_data)) {
+            ret = libusb_detach_kernel_driver(device.generic.usb_handle,
+                                              device.interface_data);
+            if (ret != 0) {
+                printf("Failed to detach kernel driver from CDC Data "
+                       "interface, code %i (%s)\n",
+                       ret, libusb_error_name(ret));
+            }
+        }
+
+        // Claim interfaces
+        ret = libusb_claim_interface(device.generic.usb_handle,
+                                     device.interface_comm);
+        if (ret != 0) {
+            printf(
+                "Failed to claim CDC Communication interface, code %i (%s)\n",
+                ret, libusb_error_name(ret));
+        }
+
+        ret = libusb_claim_interface(device.generic.usb_handle,
+                                     device.interface_data);
+        if (ret != 0) {
+            printf("Failed to claim CDC Data interface, code %i (%s)\n", ret,
+                   libusb_error_name(ret));
+        }
+
+        // Init device
+        Init();
+    }
+
+    ~CdcAcmDevice() {
+        libusb_release_interface(device.generic.usb_handle,
+                                 device.interface_comm);
+        libusb_release_interface(device.generic.usb_handle,
+                                 device.interface_data);
+        libusb_close(device.generic.usb_handle);
     }
 
     void Init() override {

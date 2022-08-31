@@ -13,7 +13,7 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#include "common.hpp"
+#pragma once
 #include "generic.hpp"
 #include <libusb-1.0/libusb.h>
 
