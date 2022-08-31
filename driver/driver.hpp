@@ -23,12 +23,16 @@ class BaseDriver {
 protected:
     virtual void Configure() = 0;
     virtual void UpdateControlLines() = 0;
-    u32_t baud_rate;
-    DataBits data_bits;
-    StopBits stop_bits;
-    Parity parity;
+    u32_t baud_rate = 9600; // 9600
+    DataBits data_bits = DataBits_8; // 8
+    Parity parity = Parity_None; // N
+    StopBits stop_bits = StopBits_1; // 1
 
 public:
+    /**
+     * Prepare device for communication
+     */
+    virtual void Init() = 0;
     /**
      * Set new baud rate and reconfigure device
      * @param new_baud_rate New device baud rate
