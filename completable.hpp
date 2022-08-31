@@ -17,6 +17,9 @@
 
 namespace usbselfserial {
 
+/**
+ * Abstract class for 2-stage destructor classes to base off
+ */
 class Completable {
 private:
     bool completing = false;

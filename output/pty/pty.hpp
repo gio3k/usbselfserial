@@ -18,6 +18,8 @@
 #include "data.hpp"
 #include "util.hpp"
 #include <cstdio>
+#include <sys/errno.h>
+#include <thread>
 
 namespace usbselfserial {
 namespace output {
@@ -30,6 +32,7 @@ class PtyOutput : public Completable {
 private:
     usbselfserial::driver::BaseDevice& device;
     pty::PtyOutputInstanceData data;
+    std::thread thread_pty_read;
 
     static void LIBUSB_CALL
     transfer_rx_callback(struct libusb_transfer* transfer) {
@@ -59,11 +62,6 @@ private:
         data->transfer_rx_activity = true;
     }
 
-    static void LIBUSB_CALL
-    transfer_tx_callback(struct libusb_transfer* transfer) {
-        // pty -> PtyOutput -> usb
-    }
-
 public:
     PtyOutput(usbselfserial::driver::BaseDevice& _device, void* _config)
         : device(_device) {
@@ -72,7 +70,6 @@ public:
 
         // Allocate transfers
         data.transfer_rx = libusb_alloc_transfer(0);
-        data.transfer_tx = libusb_alloc_transfer(0);
 
         // Set up transfers
         libusb_fill_bulk_transfer(
@@ -88,29 +85,42 @@ public:
             throw "Failed to submit RX transfer.";
         }
 
+        // Init thread
         data.transfer_rx_activity = true;
     }
 
     ~PtyOutput() {
         if (data.transfer_rx != 0x0)
             libusb_free_transfer(data.transfer_rx);
-        if (data.transfer_tx != 0x0)
-            libusb_free_transfer(data.transfer_tx);
         data.transfer_rx = 0x0;
-        data.transfer_tx = 0x0;
+    }
+
+    void Run() {
+        // Set buffer to fully 0
+        memset(data.buffer_tx, 0, sizeof(data.buffer_tx));
+
+        // Read from pty fd
+        int ret = read(data.mfd, data.buffer_tx, sizeof(data.buffer_tx));
+        if (ret == -1) {
+            if (errno != EAGAIN)
+                printf("Error reading from pty fd! code %i\n", errno);
+            return;
+        }
+
+        // Send to USB
+        libusb_bulk_transfer(device.GetDeviceData()->usb_handle,
+                             device.GetDeviceData()->endpoint_out,
+                             data.buffer_tx, sizeof(data.buffer_tx), NULL,
+                             2000);
     }
 
     void HandleCompletionRequest() override {
         // Cancel transfers
         if (data.transfer_rx != 0x0)
             libusb_cancel_transfer(data.transfer_rx);
-        if (data.transfer_tx != 0x0)
-            libusb_cancel_transfer(data.transfer_tx);
     }
 
-    bool Completed() override {
-        return !(data.transfer_rx_activity || data.transfer_tx_activity);
-    }
+    bool Completed() override { return !(data.transfer_rx_activity); }
 };
 
 } // namespace output

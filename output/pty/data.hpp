@@ -34,7 +34,6 @@ struct PtyOutputInstanceData {
      * libusb transfers
      */
     struct libusb_transfer* transfer_rx;
-    struct libusb_transfer* transfer_tx;
 
     /**
      * *_activity
@@ -42,10 +41,10 @@ struct PtyOutputInstanceData {
      * calling TryComplete() (look at bool Completed())
      */
     bool transfer_rx_activity = false;
-    bool transfer_tx_activity = false;
 
     // RX transfer buffer
     u8_t buffer_rx[1024];
+    u8_t buffer_tx[32];
 };
 
 } // namespace pty
