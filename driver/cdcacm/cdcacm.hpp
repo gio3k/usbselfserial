@@ -13,9 +13,9 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#include "../driver.hpp"
-#include "device.hpp"
+#include "../device.hpp"
 #include "vars.hpp"
+#include <libusb-1.0/libusb.h>
 #include <stdio.h>
 
 #define CONTROL_IN (LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_ENDPOINT_IN)
@@ -25,9 +25,18 @@
 namespace usbselfserial {
 namespace driver {
 
-class CdcAcmDriver : public BaseDriver {
+struct CdcAcmDeviceData {
+    libusb_device* usb_device;
+    libusb_device_handle* usb_handle;
+    u8_t interface_data;
+    u8_t interface_comm;
+    u8_t endpoint_out;
+    u8_t endpoint_in;
+};
+
+class CdcAcmDevice : public BaseDevice {
 protected:
-    CdcAcmDevice device;
+    CdcAcmDeviceData device;
     bool rts = true;
     bool dtr = true;
 
@@ -78,7 +87,7 @@ protected:
     }
 
 public:
-    CdcAcmDriver(libusb_device_handle* _handle) : BaseDriver() {
+    CdcAcmDevice(libusb_device_handle* _handle) : BaseDevice() {
         device.usb_handle = _handle;
         device.usb_device = libusb_get_device(_handle);
 
@@ -177,7 +186,7 @@ public:
         ControlOut(SEND_BREAK, value ? 0xffff : 0);
     }
 
-    CdcAcmDevice& GetDevice() { return device; }
+    CdcAcmDeviceData& GetDeviceData() { return device; }
 };
 
 } // namespace driver

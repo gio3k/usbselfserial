@@ -19,13 +19,13 @@
 namespace usbselfserial {
 namespace driver {
 
-class BaseDriver {
+class BaseDevice {
 protected:
     virtual void Configure() = 0;
     virtual void UpdateControlLines() = 0;
-    u32_t baud_rate = 9600; // 9600
+    u32_t baud_rate = 9600;          // 9600
     DataBits data_bits = DataBits_8; // 8
-    Parity parity = Parity_None; // N
+    Parity parity = Parity_None;     // N
     StopBits stop_bits = StopBits_1; // 1
 
 public:
