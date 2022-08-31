@@ -26,12 +26,9 @@ namespace usbselfserial {
 namespace driver {
 
 struct CdcAcmDeviceData {
-    libusb_device* usb_device;
-    libusb_device_handle* usb_handle;
+    GenericDeviceData generic;
     u8_t interface_data;
     u8_t interface_comm;
-    u8_t endpoint_out;
-    u8_t endpoint_in;
 };
 
 class CdcAcmDevice : public BaseDevice {
@@ -50,9 +47,9 @@ protected:
      */
     int ControlOut(u8_t request, u16_t value, u8_t* data = 0x0,
                    u16_t length = 0) {
-        return libusb_control_transfer(device.usb_handle, USB_RT_ACM, request,
-                                       value, device.interface_comm, data,
-                                       length, 2000);
+        return libusb_control_transfer(device.generic.usb_handle, USB_RT_ACM,
+                                       request, value, device.interface_comm,
+                                       data, length, 2000);
     }
 
     void Configure() override {
@@ -88,8 +85,8 @@ protected:
 
 public:
     CdcAcmDevice(libusb_device_handle* _handle) : BaseDevice() {
-        device.usb_handle = _handle;
-        device.usb_device = libusb_get_device(_handle);
+        device.generic.usb_handle = _handle;
+        device.generic.usb_device = libusb_get_device(_handle);
 
         libusb_device_descriptor descriptor_device;
         libusb_config_descriptor* descriptor_config;
@@ -98,8 +95,8 @@ public:
         const libusb_endpoint_descriptor* descriptor_endpoint;
 
         // Get device descriptor
-        int ret =
-            libusb_get_device_descriptor(device.usb_device, &descriptor_device);
+        int ret = libusb_get_device_descriptor(device.generic.usb_device,
+                                               &descriptor_device);
         if (ret != 0) {
             throw "Failed to get device descriptor";
         }
@@ -108,7 +105,7 @@ public:
         // descriptor)
         for (int ic = 0; ic < descriptor_device.bNumConfigurations; ic++) {
             // Get the configuration descriptor
-            libusb_get_config_descriptor(device.usb_device, ic,
+            libusb_get_config_descriptor(device.generic.usb_device, ic,
                                          &descriptor_config);
 
             // For each interface.. (with the amount of them found in the
@@ -142,11 +139,11 @@ public:
                             (descriptor_endpoint->bEndpointAddress &
                              USB_DIR_IN)) {
                             // Set IN endpoint
-                            device.endpoint_in =
+                            device.generic.endpoint_in =
                                 descriptor_endpoint->bEndpointAddress;
                         } else {
                             // Set OUT endpoint
-                            device.endpoint_out =
+                            device.generic.endpoint_out =
                                 descriptor_endpoint->bEndpointAddress;
                         }
                     }
@@ -163,8 +160,9 @@ public:
             "Prepared CDC ACM device. (usb_device %p, usb_handle %p, "
             "interfaces "
             "[data 0x%02x, comm 0x%02x], endpoints [out 0x%02x, in 0x%02x])\n",
-            device.usb_device, device.usb_handle, device.interface_data,
-            device.interface_comm, device.endpoint_out, device.endpoint_in);
+            device.generic.usb_device, device.generic.usb_handle,
+            device.interface_data, device.interface_comm,
+            device.generic.endpoint_out, device.generic.endpoint_in);
     }
 
     void Init() override {
@@ -186,7 +184,9 @@ public:
         ControlOut(SEND_BREAK, value ? 0xffff : 0);
     }
 
-    CdcAcmDeviceData& GetDeviceData() { return device; }
+    GenericDeviceData* GetDeviceData() override {
+        return (GenericDeviceData*)&device;
+    }
 };
 
 } // namespace driver
