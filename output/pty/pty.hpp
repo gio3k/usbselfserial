@@ -106,15 +106,10 @@ public:
             return;
         }
 
-        // Get data length
-        int length = 0;
-        while (data.buffer_tx[length] != 0 && length < sizeof(data.buffer_tx))
-            length++;
-
         // Send to USB
         libusb_bulk_transfer(device.GetDeviceData()->usb_handle,
                              device.GetDeviceData()->endpoint_out,
-                             data.buffer_tx, length, NULL, 2000);
+                             data.buffer_tx, ret, NULL, 2000);
     }
 
     void HandleFinalizeRequest() override {

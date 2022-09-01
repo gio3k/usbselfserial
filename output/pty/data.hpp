@@ -38,7 +38,7 @@ struct PtyOutputInstanceData {
     /**
      * *_activity
      * Used to know whether or not the instance has finished or not after
-     * calling TryComplete() (look at bool Completed())
+     * calling HandleFinalizeRequest() (look at bool HasFinished())
      */
     bool transfer_rx_activity = false;
 
