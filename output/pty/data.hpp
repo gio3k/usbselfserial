@@ -43,7 +43,7 @@ struct PtyOutputInstanceData {
     bool transfer_rx_activity = false;
 
     // RX transfer buffer
-    u8_t buffer_rx[1024];
+    u8_t buffer_rx[32];
     u8_t buffer_tx[32];
 };
 
