@@ -32,7 +32,6 @@ class PtyOutput : public BaseOutput {
 private:
     usbselfserial::driver::BaseDevice& device;
     pty::PtyOutputInstanceData data;
-    std::thread thread_pty_read;
 
     static void LIBUSB_CALL
     transfer_rx_callback(struct libusb_transfer* transfer) {
