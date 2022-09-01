@@ -18,15 +18,16 @@
 namespace usbselfserial {
 
 /**
- * Abstract class for 2-stage destructor classes to base off
+ * Abstract class for classes that use Creator to make their instance
  */
-class Completable {
+class Creatable {
 private:
     bool completing = false;
 
 public:
     virtual void HandleCompletionRequest() = 0;
     virtual bool Completed() = 0;
+    virtual void Run() = 0;
 
     /**
      * Request class to complete / clean up execution

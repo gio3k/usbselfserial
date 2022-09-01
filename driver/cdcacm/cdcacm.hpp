@@ -235,6 +235,8 @@ public:
     void HandleCompletionRequest() override {}
 
     bool Completed() override { return true; }
+
+    void Run() override {}
 };
 
 } // namespace driver

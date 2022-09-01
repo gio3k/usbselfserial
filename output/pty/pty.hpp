@@ -13,8 +13,8 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#include "../../completable.hpp"
-#include "../../driver/device.hpp"
+#include "../../creatable.hpp"
+#include "../../driver/base.hpp"
 #include "data.hpp"
 #include "util.hpp"
 #include <cstdio>
@@ -28,7 +28,7 @@ namespace output {
  * PTY output class.
  * Handles a USB serial connection and links it to pty i/o
  */
-class PtyOutput : public Completable {
+class PtyOutput : public Creatable {
 private:
     usbselfserial::driver::BaseDevice& device;
     pty::PtyOutputInstanceData data;
@@ -95,7 +95,7 @@ public:
         data.transfer_rx = 0x0;
     }
 
-    void Run() {
+    void Run() override {
         // Set buffer to fully 0
         memset(data.buffer_tx, 0, sizeof(data.buffer_tx));
 
