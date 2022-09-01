@@ -231,12 +231,6 @@ public:
     GenericDeviceData* GetDeviceData() override {
         return (GenericDeviceData*)&device;
     }
-
-    void HandleCompletionRequest() override {}
-
-    bool Completed() override { return true; }
-
-    void Run() override {}
 };
 
 } // namespace driver

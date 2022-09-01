@@ -14,30 +14,33 @@
  * - 2022
  */
 #pragma once
+#include <libusb-1.0/libusb.h>
 
 namespace usbselfserial {
+namespace output {
 
-/**
- * Abstract class for classes that use Creator to make their instance
- */
-class Creatable {
+class BaseOutput {
 private:
     bool completing = false;
 
+protected:
+    void EndFinalizeRequest() { completing = false; }
+    virtual void HandleFinalizeRequest() = 0;
+
 public:
-    virtual void HandleCompletionRequest() = 0;
-    virtual bool Completed() = 0;
-    virtual void Run() = 0;
+    virtual void Update() = 0;
+    virtual bool HasFinished() = 0;
 
     /**
-     * Request class to complete / clean up execution
+     * Tell class to complete / clean up execution
      */
-    void TryComplete() {
+    void TryFinalize() {
         if (completing)
             return;
-        HandleCompletionRequest();
+        HandleFinalizeRequest();
         completing = true;
     }
 };
 
+} // namespace output
 } // namespace usbselfserial

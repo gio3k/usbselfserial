@@ -85,18 +85,18 @@ public:
 
     ~Creator() { libusb_hotplug_deregister_callback(NULL, handle_callback); }
 
-    void Create() {
+    bool Create() {
         if (!data.connected) {
             if (data.output_instance == 0x0 && data.device_instance == 0x0)
-                return;
+                return false;
 
             // if output instance exists...
             if (data.output_instance != 0x0) {
                 // request completion
-                data.output_instance->TryComplete();
+                data.output_instance->TryFinalize();
 
                 // if it's already finished...
-                if (data.output_instance->Completed()) {
+                if (data.output_instance->HasFinished()) {
                     // delete the instance
                     delete data.output_instance;
                     data.output_instance = 0x0;
@@ -105,34 +105,30 @@ public:
 
             // if device instance exists but output instance doesn't...
             if (data.output_instance == 0x0 && data.device_instance != 0x0) {
-                // request completion
-                data.device_instance->TryComplete();
-
-                // if it's already finished...
-                if (data.device_instance->Completed()) {
-                    // delete the instance
-                    delete data.device_instance;
-                    data.device_instance = 0x0;
-                }
+                // delete the instance
+                delete data.device_instance;
+                data.device_instance = 0x0;
             }
 
-            return;
+            return false;
         }
 
-        if (data.device_instance == 0x0)
+        bool out = false;
+        if (data.device_instance == 0x0) {
             data.device_instance = new DeviceT(data.device_handle);
-        if (data.output_instance == 0x0)
+            out = true;
+        }
+        if (data.output_instance == 0x0) {
             data.output_instance =
                 new OutputT(*data.device_instance, data.output_config_data);
+            out = true;
+        }
+
+        return out;
     }
 
-    void TryRunOutput() {
-        if (data.output_instance != 0x0)
-            data.output_instance->Run();
-    }
-
-    DeviceT& GetDevice() { return *data.device_instance; }
-    OutputT& GetOutput() { return *data.output_instance; }
+    DeviceT* GetDevice() { return data.device_instance; }
+    OutputT* GetOutput() { return data.output_instance; }
 };
 
 } // namespace usbselfserial

@@ -13,8 +13,8 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#include "../../creatable.hpp"
 #include "../../driver/base.hpp"
+#include "../base.hpp"
 #include "data.hpp"
 #include "util.hpp"
 #include <cstdio>
@@ -28,7 +28,7 @@ namespace output {
  * PTY output class.
  * Handles a USB serial connection and links it to pty i/o
  */
-class PtyOutput : public Creatable {
+class PtyOutput : public BaseOutput {
 private:
     usbselfserial::driver::BaseDevice& device;
     pty::PtyOutputInstanceData data;
@@ -95,7 +95,7 @@ public:
         data.transfer_rx = 0x0;
     }
 
-    void Run() override {
+    void Update() override {
         // Set buffer to fully 0
         memset(data.buffer_tx, 0, sizeof(data.buffer_tx));
 
@@ -118,13 +118,13 @@ public:
                              data.buffer_tx, length, NULL, 2000);
     }
 
-    void HandleCompletionRequest() override {
+    void HandleFinalizeRequest() override {
         // Cancel transfers
         if (data.transfer_rx != 0x0)
             libusb_cancel_transfer(data.transfer_rx);
     }
 
-    bool Completed() override { return !(data.transfer_rx_activity); }
+    bool HasFinished() override { return !(data.transfer_rx_activity); }
 };
 
 } // namespace output
