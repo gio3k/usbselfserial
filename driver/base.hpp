@@ -14,13 +14,14 @@
  * - 2022
  */
 #pragma once
+#include "../completable.hpp"
 #include "generic.hpp"
 #include <libusb-1.0/libusb.h>
 
 namespace usbselfserial {
 namespace driver {
 
-class BaseDevice {
+class BaseDevice : public Completable {
 protected:
     virtual void Configure() = 0;
     virtual void UpdateControlLines() = 0;

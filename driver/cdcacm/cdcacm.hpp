@@ -13,7 +13,7 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#include "../device.hpp"
+#include "../base.hpp"
 #include "vars.hpp"
 #include <libusb-1.0/libusb.h>
 #include <stdio.h>
@@ -207,13 +207,7 @@ public:
         Init();
     }
 
-    ~CdcAcmDevice() {
-        libusb_release_interface(device.generic.usb_handle,
-                                 device.interface_comm);
-        libusb_release_interface(device.generic.usb_handle,
-                                 device.interface_data);
-        libusb_close(device.generic.usb_handle);
-    }
+    ~CdcAcmDevice() { libusb_close(device.generic.usb_handle); }
 
     void Init() override {
         UpdateControlLines();
@@ -237,6 +231,10 @@ public:
     GenericDeviceData* GetDeviceData() override {
         return (GenericDeviceData*)&device;
     }
+
+    void HandleCompletionRequest() override {}
+
+    bool Completed() override { return true; }
 };
 
 } // namespace driver
