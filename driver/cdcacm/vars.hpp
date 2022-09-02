@@ -21,6 +21,7 @@
 #define SET_CONTROL_LINE_STATE 0x22
 #define SEND_BREAK 0x23
 
+// Defines from the Linux kernel
 // Defines from linux/include/uapi/linux/usb/ch9.h
 #define USB_TYPE_CLASS (0x01 << 5)
 #define USB_RECIP_INTERFACE 0x01
@@ -28,7 +29,7 @@
 #define USB_CLASS_CDC_DATA 0x0a
 
 #define USB_DIR_IN 0x80
-#define USB_DIR_OUT 0x80
+#define USB_DIR_OUT 0x0
 
 // Defines from linux/drivers/usb/class/cdc-acm.h
 #define USB_RT_ACM (USB_TYPE_CLASS | USB_RECIP_INTERFACE)

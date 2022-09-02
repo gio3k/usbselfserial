@@ -14,22 +14,39 @@
  * - 2022
  */
 #pragma once
-#include "../types.hpp"
+#include "../../types.hpp"
 
 namespace usbselfserial {
-namespace driver {
+namespace output {
+namespace pty {
 
-enum DataBits { DataBits_5 = 0, DataBits_6, DataBits_7, DataBits_8 };
+/**
+ * Data for a single PtyOutput instance
+ * This is so these values can be passed to libusb callbacks as a single
+ * user_data pointer.
+ */
+struct PtyOutputInstanceData {
+    int mfd, sfd;
+    const char* sfdname;
 
-enum StopBits { StopBits_1 = 0, StopBits_1_5, StopBits_2 };
+    /**
+     * transfer_*
+     * libusb transfers
+     */
+    struct libusb_transfer* transfer_rx;
 
-enum Parity {
-    Parity_None = 0,
-    Parity_Odd,
-    Parity_Even,
-    Parity_Mark,
-    Parity_Space
+    /**
+     * *_activity
+     * Used to know whether or not the instance has finished or not after
+     * calling HandleFinalizeRequest() (look at bool HasFinished())
+     */
+    bool transfer_rx_activity = false;
+
+    // RX transfer buffer
+    u8_t buffer_rx[32];
+    u8_t buffer_tx[32];
 };
 
-} // namespace driver
+} // namespace pty
+} // namespace output
 } // namespace usbselfserial

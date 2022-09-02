@@ -14,22 +14,33 @@
  * - 2022
  */
 #pragma once
-#include "../types.hpp"
+#include <libusb-1.0/libusb.h>
 
 namespace usbselfserial {
-namespace driver {
+namespace output {
 
-enum DataBits { DataBits_5 = 0, DataBits_6, DataBits_7, DataBits_8 };
+class BaseOutput {
+private:
+    bool completing = false;
 
-enum StopBits { StopBits_1 = 0, StopBits_1_5, StopBits_2 };
+protected:
+    void EndFinalizeRequest() { completing = false; }
+    virtual void HandleFinalizeRequest() = 0;
 
-enum Parity {
-    Parity_None = 0,
-    Parity_Odd,
-    Parity_Even,
-    Parity_Mark,
-    Parity_Space
+public:
+    virtual void Update() = 0;
+    virtual bool HasFinished() = 0;
+
+    /**
+     * Tell class to complete / clean up execution
+     */
+    void TryFinalize() {
+        if (completing)
+            return;
+        HandleFinalizeRequest();
+        completing = true;
+    }
 };
 
-} // namespace driver
+} // namespace output
 } // namespace usbselfserial

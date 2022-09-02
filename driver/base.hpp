@@ -13,7 +13,8 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#include "common.hpp"
+#pragma once
+#include "generic.hpp"
 #include <libusb-1.0/libusb.h>
 
 namespace usbselfserial {
@@ -33,6 +34,27 @@ public:
      * Prepare device for communication
      */
     virtual void Init() = 0;
+    /**
+     * Set new DTR (Data Terminal Ready)
+     * @param value New DTR value
+     */
+    virtual void SetDTR(bool value) = 0;
+    /**
+     * Set new RTS (Request To Send)
+     * @param value New RTS value
+     */
+    virtual void SetRTS(bool value) = 0;
+    /**
+     * Set new BREAK value
+     * @param value New BREAK value
+     */
+    virtual void SetBreak(bool value) = 0;
+    /**
+     * Get device data
+     * @return u8_t GenericDeviceData
+     */
+    virtual GenericDeviceData* GetDeviceData() = 0;
+
     /**
      * Set new baud rate and reconfigure device
      * @param new_baud_rate New device baud rate
@@ -65,21 +87,6 @@ public:
         parity = new_parity;
         Configure();
     }
-    /**
-     * Set new DTR (Data Terminal Ready)
-     * @param value New DTR value
-     */
-    virtual void SetDTR(bool value) = 0;
-    /**
-     * Set new RTS (Request To Send)
-     * @param value New RTS value
-     */
-    virtual void SetRTS(bool value) = 0;
-    /**
-     * Set new BREAK value
-     * @param value New BREAK value
-     */
-    virtual void SetBreak(bool value) = 0;
 };
 
 } // namespace driver
