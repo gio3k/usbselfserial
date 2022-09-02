@@ -15,8 +15,8 @@
  */
 #include "driver/base.hpp"
 #include "output/base.hpp"
-#include <stdio.h>
 #include <libusb-1.0/libusb.h>
+#include <stdio.h>
 #include <type_traits>
 
 namespace usbselfserial {
@@ -56,7 +56,6 @@ private:
                        libusb_error_name(ret));
             connection->connected = true;
         } else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT) {
-            printf("device disconnect\n");
             connection->connected = false;
             connection->device_handle = NULL;
         }
@@ -96,6 +95,11 @@ public:
         libusb_hotplug_deregister_callback(NULL, handle_callback);
     }
 
+    /**
+     * Attempt to create instances
+     * @return true Device created
+     * @return false No device created
+     */
     bool Create() {
         if (!connection.connected) {
             if (device == NULL)
@@ -116,13 +120,14 @@ public:
                 delete device;
                 device = NULL;
             }
-            
+
             return false;
         }
 
         if (device == NULL) {
             // Create new device
-            printf("Creating new device instance (usb_handle %p)!\n", connection.device_handle);
+            printf("Creating new device instance (usb_handle %p)!\n",
+                   connection.device_handle);
             device = new DeviceT(connection.device_handle);
             output->LinkDevice(device);
             return true;
