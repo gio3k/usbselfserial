@@ -68,10 +68,12 @@ public:
         // Register hotplug callback
         int ret = libusb_hotplug_register_callback(
             NULL,
-            LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
-                LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT,
-            0, vendor_id, product_id, LIBUSB_HOTPLUG_MATCH_ANY,
-            hotplug_callback, &connection, &handle_callback);
+            static_cast<libusb_hotplug_event>(
+                LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
+                LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
+            LIBUSB_HOTPLUG_NO_FLAGS, vendor_id, product_id,
+            LIBUSB_HOTPLUG_MATCH_ANY, hotplug_callback, &connection,
+            &handle_callback);
 
         if (ret < 0)
             printf("Failed to create hotplug callback. code: %i (%s)\n", ret,
