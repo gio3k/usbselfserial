@@ -14,7 +14,7 @@
  * - 2022
  */
 #pragma once
-#include "generic.hpp"
+#include "data.hpp"
 #include <libusb-1.0/libusb.h>
 
 namespace usbselfserial {

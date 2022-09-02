@@ -14,31 +14,35 @@
  * - 2022
  */
 #pragma once
-#include <libusb-1.0/libusb.h>
+#include "../driver/base.hpp"
 
 namespace usbselfserial {
 namespace output {
 
 class BaseOutput {
 private:
-    bool completing = false;
+    bool currently_finalizing = false;
 
 protected:
-    void EndFinalizeRequest() { completing = false; }
+    void EndFinalizeRequest() { currently_finalizing = false; }
     virtual void HandleFinalizeRequest() = 0;
 
 public:
     virtual void Update() = 0;
     virtual bool HasFinished() = 0;
 
+    virtual void LinkDevice(usbselfserial::driver::BaseDevice* device) = 0;
+    virtual void UnlinkDevice() = 0;
+    virtual bool HasLinkedDevice() = 0;
+
     /**
      * Tell class to complete / clean up execution
      */
     void TryFinalize() {
-        if (completing)
+        if (currently_finalizing)
             return;
         HandleFinalizeRequest();
-        completing = true;
+        currently_finalizing = true;
     }
 };
 

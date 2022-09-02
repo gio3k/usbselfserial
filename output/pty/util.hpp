@@ -14,12 +14,11 @@
  * - 2022
  */
 #include "data.hpp"
-#include <cstdlib>
-#include <sys/fcntl.h>
-#include <sys/stat.h>
-#include <sys/termios.h>
-#include <unistd.h>
-#include <util.h>
+#include <cstdlib>     // ptsname
+#include <sys/fcntl.h> // F_*
+#include <sys/stat.h>  // fchmod
+#include <unistd.h>    // symlink, unlink
+#include <util.h>      // openpty
 
 namespace usbselfserial {
 namespace output {
@@ -27,23 +26,23 @@ namespace pty {
 
 /**
  * Basic create pty function
- * @param data PtyOutputInstanceData ref
+ * @param instance PtyOutputInstanceData ref
  * @param location Location to symlink pty to
  */
-void create_pty(PtyOutputInstanceData& data, const char* location) {
+void create_pty(PtyOutputInstanceData& instance, const char* location) {
     if (location == 0x0)
         throw "No location specified to PtyOutput!";
 
     // Get mfd & sfd by opening a pty
-    int ret = openpty(&data.mfd, &data.sfd, 0, 0, 0);
+    int ret = openpty(&instance.mfd, &instance.sfd, 0, 0, 0);
     if (ret != 0)
         throw "Failed to open pty.";
 
     // Configure pty
-    fcntl(data.mfd, F_SETFL, fcntl(data.mfd, F_GETFL) | O_NONBLOCK);
+    fcntl(instance.mfd, F_SETFL, fcntl(instance.mfd, F_GETFL) | O_NONBLOCK);
 
     struct termios config;
-    ret = tcgetattr(data.mfd, &config);
+    ret = tcgetattr(instance.mfd, &config);
     config.c_iflag &=
         ~(IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON);
     config.c_oflag &= ~OPOST;
@@ -52,10 +51,10 @@ void create_pty(PtyOutputInstanceData& data, const char* location) {
     config.c_cflag |= CS8;
     config.c_cc[VMIN] = 0;
     config.c_cc[VTIME] = 0;
-    tcsetattr(data.mfd, TCSAFLUSH, &config);
+    tcsetattr(instance.mfd, TCSAFLUSH, &config);
 
     // Chmod sfd
-    ret = fchmod(data.sfd, S_IRWXU | S_IRWXG | S_IRWXO);
+    ret = fchmod(instance.sfd, S_IRWXU | S_IRWXG | S_IRWXO);
     if (ret != 0)
         printf("fchmod failure! code %i\n", ret);
 
@@ -65,10 +64,10 @@ void create_pty(PtyOutputInstanceData& data, const char* location) {
         printf("unlink failure! code %i\n", ret);
 
     // Get filename for sfd
-    data.sfdname = ptsname(data.mfd);
+    instance.sfd_name = ptsname(instance.mfd);
 
     // Create new symlink
-    ret = symlink(data.sfdname, location);
+    ret = symlink(instance.sfd_name, location);
     if (ret != 0)
         printf("symlink failure! code %i\n", ret);
 }

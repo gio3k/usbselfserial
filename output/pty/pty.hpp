@@ -13,13 +13,11 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#include "../../driver/base.hpp"
 #include "../base.hpp"
 #include "data.hpp"
 #include "util.hpp"
-#include <cstdio>
-#include <sys/errno.h>
-#include <thread>
+#include <string.h>    // memset
+#include <sys/errno.h> // errno
 
 namespace usbselfserial {
 namespace output {
@@ -29,96 +27,122 @@ namespace output {
  * Handles a USB serial connection and links it to pty i/o
  */
 class PtyOutput : public BaseOutput {
-private:
-    usbselfserial::driver::BaseDevice& device;
-    pty::PtyOutputInstanceData data;
+protected:
+    pty::PtyOutputInstanceData instance;
+    pty::PtyOutputConfig config;
 
-    static void LIBUSB_CALL
-    transfer_rx_callback(struct libusb_transfer* transfer) {
-        // usb -> PtyOutput -> pty
-        pty::PtyOutputInstanceData* data =
+private:
+    usbselfserial::driver::BaseDevice* device;
+
+    // usb [->] PtyOutput -> pty
+    static void LIBUSB_CALL callback_rx(struct libusb_transfer* transfer) {
+        pty::PtyOutputInstanceData* instance =
             (pty::PtyOutputInstanceData*)transfer->user_data;
-        data->transfer_rx_activity = false;
+        instance->active = false;
 
         // Make sure transfer completed
         if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
             printf("Failed to submit RX transfer! code %i\n", transfer->status);
-            libusb_cancel_transfer(data->transfer_rx);
+            libusb_cancel_transfer(instance->transfer_rx);
             return;
         }
 
         // Write to pty fd
-        write(data->mfd, data->buffer_rx, transfer->actual_length);
+        write(instance->mfd, instance->buffer_rx, transfer->actual_length);
 
         // Resubmit transfer
-        int ret = libusb_submit_transfer(data->transfer_rx);
-        if (ret != 0) {
+        int ret = libusb_submit_transfer(instance->transfer_rx);
+        if (ret < 0) {
             printf("Failed to submit RX transfer! code %i (%s)\n", ret,
                    libusb_error_name(ret));
-            libusb_cancel_transfer(data->transfer_rx);
+            libusb_cancel_transfer(instance->transfer_rx);
         }
 
-        data->transfer_rx_activity = true;
+        instance->active = true;
     }
 
 public:
-    PtyOutput(usbselfserial::driver::BaseDevice& _device, void* _config)
-        : device(_device) {
-        // Create pty
-        pty::create_pty(data, (const char*)_config);
+    PtyOutput(pty::PtyOutputConfig* _config) {
+        config = *_config;
+        pty::create_pty(instance, config.location);
+    }
+
+    void LinkDevice(usbselfserial::driver::BaseDevice* _device) override {
+        if (_device == NULL)
+            throw "Tried to link null device!";
+        device = _device;
 
         // Allocate transfers
-        data.transfer_rx = libusb_alloc_transfer(0);
+        instance.transfer_rx = libusb_alloc_transfer(0);
 
         // Set up transfers
         libusb_fill_bulk_transfer(
-            data.transfer_rx, device.GetDeviceData()->usb_handle,
-            device.GetDeviceData()->endpoint_in, data.buffer_rx,
-            sizeof(data.buffer_rx), transfer_rx_callback, &data, 0);
+            instance.transfer_rx, device->GetDeviceData()->usb_handle,
+            device->GetDeviceData()->endpoint_in, instance.buffer_rx,
+            sizeof(instance.buffer_rx), callback_rx, &instance, 0);
 
         // Submit transfers
-        int ret = libusb_submit_transfer(data.transfer_rx);
-        if (ret != 0) {
+        int ret = libusb_submit_transfer(instance.transfer_rx);
+        if (ret < 0) {
             printf("libusb_submit_transfer failure! code %i (%s)\n", ret,
                    libusb_error_name(ret));
             throw "Failed to submit RX transfer.";
         }
 
         // Init thread
-        data.transfer_rx_activity = true;
+        instance.active = true;
     }
 
-    ~PtyOutput() {
-        if (data.transfer_rx != 0x0)
-            libusb_free_transfer(data.transfer_rx);
-        data.transfer_rx = 0x0;
+    void UnlinkDevice() override {
+        if (instance.transfer_rx != 0x0)
+            libusb_free_transfer(instance.transfer_rx);
+        instance.transfer_rx = 0x0;
+        instance.active = false;
+        memset(instance.buffer_rx, 0, sizeof(instance.buffer_rx));
+        memset(instance.buffer_tx, 0, sizeof(instance.buffer_tx));
+        if (!config.retain_pty) {
+            close(instance.mfd);
+            pty::create_pty(instance, config.location);
+        }
     }
 
     void Update() override {
+        if (!HasLinkedDevice())
+            return;
+
         // Set buffer to fully 0
-        memset(data.buffer_tx, 0, sizeof(data.buffer_tx));
+        memset(instance.buffer_tx, 0, sizeof(instance.buffer_tx));
 
         // Read from pty fd
-        int ret = read(data.mfd, data.buffer_tx, sizeof(data.buffer_tx));
+        int ret =
+            read(instance.mfd, instance.buffer_tx, sizeof(instance.buffer_tx));
         if (ret == -1) {
             if (errno != EAGAIN)
                 printf("Error reading from pty fd! code %i\n", errno);
             return;
         }
 
+        if (ret == 0)
+            return;
+
         // Send to USB
-        libusb_bulk_transfer(device.GetDeviceData()->usb_handle,
-                             device.GetDeviceData()->endpoint_out,
-                             data.buffer_tx, ret, NULL, 2000);
+        libusb_bulk_transfer(device->GetDeviceData()->usb_handle,
+                             device->GetDeviceData()->endpoint_out,
+                             instance.buffer_tx, ret, NULL, 2000);
     }
 
     void HandleFinalizeRequest() override {
         // Cancel transfers
-        if (data.transfer_rx != 0x0)
-            libusb_cancel_transfer(data.transfer_rx);
+        if (instance.transfer_rx != 0x0)
+            libusb_cancel_transfer(instance.transfer_rx);
     }
 
-    bool HasFinished() override { return !(data.transfer_rx_activity); }
+    bool HasLinkedDevice() override {
+        // hacky way
+        return (instance.transfer_rx != 0x0);
+    }
+
+    bool HasFinished() override { return !(instance.active); }
 };
 
 } // namespace output

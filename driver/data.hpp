@@ -13,8 +13,8 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
-#pragma once
 #include "../types.hpp"
+#include <libusb-1.0/libusb.h>
 
 namespace usbselfserial {
 namespace driver {
@@ -29,6 +29,13 @@ enum Parity {
     Parity_Even,
     Parity_Mark,
     Parity_Space
+};
+
+struct GenericDeviceData {
+    libusb_device* usb_device;
+    libusb_device_handle* usb_handle;
+    u8_t endpoint_out;
+    u8_t endpoint_in;
 };
 
 } // namespace driver
