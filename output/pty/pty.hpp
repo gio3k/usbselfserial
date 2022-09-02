@@ -62,8 +62,8 @@ private:
     }
 
 public:
-    PtyOutput(pty::PtyOutputConfig* _config) {
-        config = *_config;
+    PtyOutput(void* _config) {
+        config = *(pty::PtyOutputConfig*)_config;
         pty::create_pty(instance, config.location);
     }
 
