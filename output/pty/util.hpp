@@ -18,7 +18,11 @@
 #include <sys/fcntl.h> // F_*
 #include <sys/stat.h>  // fchmod
 #include <unistd.h>    // symlink, unlink
+#if defined(__APPLE__)
 #include <util.h>      // openpty
+#else
+#include <pty.h>
+#endif
 
 namespace usbselfserial {
 namespace output {
