@@ -21,27 +21,35 @@ namespace output {
 namespace pty {
 
 /**
+ * Config for a PtyOutput
+ */
+struct PtyOutputConfig {
+    // Location to symlink pty
+    const char* location;
+
+    // Should the pty stay the same across device disconnects?
+    bool retain_pty = false;
+};
+
+/**
  * Data for a single PtyOutput instance
  * This is so these values can be passed to libusb callbacks as a single
  * user_data pointer.
  */
 struct PtyOutputInstanceData {
     int mfd, sfd;
-    const char* sfdname;
-
+    const char* sfd_name;
     /**
      * transfer_*
      * libusb transfers
      */
     struct libusb_transfer* transfer_rx;
-
     /**
-     * *_activity
+     * active
      * Used to know whether or not the instance has finished or not after
      * calling HandleFinalizeRequest() (look at bool HasFinished())
      */
-    bool transfer_rx_activity = false;
-
+    bool active = false;
     // RX transfer buffer
     u8_t buffer_rx[32];
     u8_t buffer_tx[32];
