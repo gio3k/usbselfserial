@@ -1,6 +1,6 @@
 # usbselfserial
 usbselfserial is a header-only C++ library for USB serial communication without inbuilt OS drivers. \
-It allows an operating system without USB serial support (like iOS) the ability to use a USB serial adapter. 
+It gives an operating system without USB serial support (like iOS) the ability to use a USB serial adapter. 
 
 ## Warning ⚠️
 usbselfserial is currently very experimental. \
