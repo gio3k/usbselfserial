@@ -30,6 +30,7 @@ enum Parity {
     Parity_Mark,
     Parity_Space
 };
+
 struct GenericDeviceData {
     libusb_device* usb_device;
     libusb_device_handle* usb_handle;
