@@ -11,5 +11,11 @@ To compile the example, you just need libusb and a C++11 capable compiler.
 * Ubuntu / Debian:
 ```
 sudo apt-get install libusb-1.0-0-dev pkg-config
-g++ example.cpp `pkg-config --libs --cflags libusb-1.0` -lutil -std=c++11 -o example
+g++ example.cpp `pkg-config --libs --cflags libusb-1.0` -lutil -std=c++17 -o example
 ```
+* macOS:
+```
+brew install libusb
+g++ -std=c++11 -lusb example.cpp -o example
+```
+You might need to run the example as root so the device can be detached from the OS drivers.
