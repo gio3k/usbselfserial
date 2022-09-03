@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <exception>
+#include <libusb-1.0/libusb.h>
 #include <string>
 
 namespace uss {
@@ -36,6 +37,11 @@ public:
     const char* what() const throw() override { return "Device has no driver"; }
 };
 
+class NoDeviceException : public std::exception {
+public:
+    const char* what() const throw() override { return "Device not found"; }
+};
+
 class DevicePopulateException : public std::exception {
     std::string msg;
 
@@ -43,6 +49,28 @@ public:
     DevicePopulateException(const std::string& reason)
         : msg("Failed to populate device USB info: " + reason) {}
     const char* what() const throw() override { return msg.c_str(); }
+};
+
+class DevicePrepException : public std::exception {
+    std::string msg;
+
+public:
+    DevicePrepException(const std::string& reason)
+        : msg("Failed to prepare USB serial device: " + reason) {}
+    const char* what() const throw() override { return msg.c_str(); }
+};
+
+class LibUsbErrorException : public std::exception {
+    int lusb_code;
+    std::string msg;
+
+public:
+    LibUsbErrorException(const std::string& during, int code)
+        : lusb_code(code) {
+        msg = during + ": " + libusb_strerror(code);
+    }
+    const char* what() const throw() override { return msg.c_str(); }
+    int code() { return lusb_code; }
 };
 
 } // namespace error

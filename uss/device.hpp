@@ -21,26 +21,85 @@
 
 namespace uss {
 
-template <typename DeviceT = void> class BaseDevice {
+class BaseDevice {
 public:
     BaudRate baud_rate = 9600;
     DataBits data_bits = DataBits::DataBits_8;
     Parity parity = Parity::Parity_None;
     StopBits stop_bits = StopBits::StopBits_1;
-    bool rts = false, dtr = false;
+    bool rts = true, dtr = true;
+
+    void Configure() {
+        if (driver == NULL)
+            throw error::NoDriverException();
+        driver->HandleDeviceConfigure(*this);
+    }
+
+    void Reinitialize() {
+        SetDriver(driver);
+    }
+
+    void SetDriver(BaseDriver* new_driver) {
+        if (new_driver == NULL)
+            throw error::NoDriverException();
+        ResetDriverSpecificData();
+        driver = new_driver;
+        if (!Ready())
+            return;
+        driver->SetUpDevice(*this);
+        driver->HandleDeviceInit(*this);
+    }
+    BaseDriver* GetDriver() { return driver; }
+
+    template <typename T> T& GetDriverSpecificData() {
+        static_assert(sizeof(T) <= sizeof(_driver_specific_data),
+                      "Type too big for GetDriverSpecificData");
+        return *(T*)_driver_specific_data;
+    }
 
     virtual libusb_device_handle* GetUsbHandle() = 0;
     virtual libusb_device* GetUsbDevice() = 0;
-    virtual uint8_t GetInEndpoint() = 0;
-    virtual uint8_t GetOutEndpoint() = 0;
 
-    virtual void Configure() = 0;
+    uint8_t GetInEndpoint() {
+        if (driver == NULL)
+            throw error::NoDriverException();
+        return driver->GetDeviceInEndpoint(*this);
+    }
+    uint8_t GetOutEndpoint() {
+        if (driver == NULL)
+            throw error::NoDriverException();
+        return driver->GetDeviceOutEndpoint(*this);
+    }
+    uint16_t GetInEndpointPacketSize() {
+        if (driver == NULL)
+            throw error::NoDriverException();
+        return driver->GetDeviceInEndpointPacketSize(*this);
+    }
+    uint16_t GetOutEndpointPacketSize() {
+        if (driver == NULL)
+            throw error::NoDriverException();
+        return driver->GetDeviceOutEndpointPacketSize(*this);
+    }
 
-    virtual void SetDriver(BaseDriver<DeviceT>* driver) = 0;
+    void SetBreak(bool value) {
+        if (driver == NULL)
+            throw error::NoDriverException();
+        return driver->SetDeviceBreak(*this, value);
+    }
+
+    bool Ready() {
+        return (GetUsbHandle() != NULL);
+    }
 
 protected:
-    // Get*Endpoint & Get*Interface need a populated device
-    virtual void PopulateUsbInfo(libusb_device* usb_device) = 0;
+    BaseDriver* driver = NULL;
+
+    void ResetDriverSpecificData() {
+        memset(_driver_specific_data, 0, sizeof(_driver_specific_data));
+    }
+
+private:
+    char _driver_specific_data[32];
 };
 
 } // namespace uss

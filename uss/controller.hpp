@@ -14,23 +14,12 @@
  * - 2022
  */
 #pragma once
-#include <stdint.h>
 
 namespace uss {
 
-class BaseDevice;
-class BaseDriver {
+class BaseController {
 public:
-    virtual void HandleDeviceInit(BaseDevice& device) = 0;
-    virtual void HandleDeviceConfigure(BaseDevice& device) = 0;
-    virtual void HandleDeviceUpdateLines(BaseDevice& device) = 0;
-    virtual void SetDeviceBreak(BaseDevice& device, bool value) = 0;
-    virtual void SetUpDevice(BaseDevice& device) = 0;
-
-    virtual uint8_t GetDeviceInEndpoint(BaseDevice& device) = 0;
-    virtual uint8_t GetDeviceOutEndpoint(BaseDevice& device) = 0;
-    virtual uint16_t GetDeviceInEndpointPacketSize(BaseDevice& device) = 0;
-    virtual uint16_t GetDeviceOutEndpointPacketSize(BaseDevice& device) = 0;
+    virtual void Update() = 0;
 };
 
 } // namespace uss

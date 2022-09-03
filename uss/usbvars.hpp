@@ -26,8 +26,8 @@ constexpr const uint8_t UsbRecipInterface = 0x01;
 constexpr const uint8_t UsbClassComm = 2;
 constexpr const uint8_t UsbClassCdcData = 0x0a;
 
-constexpr const uint8_t UsbDirIn = 0x20;
-constexpr const uint8_t UsbDirOut = 0x21;
+constexpr const uint8_t UsbDirIn = 0x80;
+constexpr const uint8_t UsbDirOut = 0x00;
 
 // Defines from linux/drivers/usb/class/cdc-acm.h
 constexpr const uint8_t UsbRtAcm = (UsbTypeClass | UsbRecipInterface);
