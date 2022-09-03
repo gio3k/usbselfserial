@@ -17,6 +17,7 @@
 #include "driver.hpp"
 #include "error.hpp"
 #include "serial.hpp"
+#include <cstring>
 #include <libusb-1.0/libusb.h>
 
 namespace uss {
@@ -35,9 +36,7 @@ public:
         driver->HandleDeviceConfigure(*this);
     }
 
-    void Reinitialize() {
-        SetDriver(driver);
-    }
+    void Reinitialize() { SetDriver(driver); }
 
     void SetDriver(BaseDriver* new_driver) {
         if (new_driver == NULL)
@@ -87,9 +86,7 @@ public:
         return driver->SetDeviceBreak(*this, value);
     }
 
-    bool Ready() {
-        return (GetUsbHandle() != NULL);
-    }
+    bool Ready() { return (GetUsbHandle() != NULL); }
 
 protected:
     BaseDriver* driver = NULL;

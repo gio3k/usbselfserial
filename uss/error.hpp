@@ -67,7 +67,7 @@ class LibUsbErrorException : public std::exception {
 public:
     LibUsbErrorException(const std::string& during, int code)
         : lusb_code(code) {
-        msg = during + ": " + libusb_strerror(code);
+        msg = during + ": " + libusb_strerror((libusb_error)code);
     }
     const char* what() const throw() override { return msg.c_str(); }
     int code() { return lusb_code; }

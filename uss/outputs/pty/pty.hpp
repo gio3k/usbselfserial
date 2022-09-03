@@ -18,6 +18,7 @@
 #include "../../error.hpp"
 #include "../../output.hpp"
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <sys/fcntl.h> // F_*
 #include <sys/stat.h>
@@ -56,19 +57,23 @@ class PtyOutput : public BaseOutput {
             (PtyOutputInstanceData*)transfer->user_data;
 
         if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
-            printf("Transfer cancelled! Attempting free. code %i\n", transfer->status);
+            printf("Transfer cancelled! Attempting free. code %i\n",
+                   transfer->status);
             libusb_free_transfer(transfer);
             return;
         }
 
-        if (transfer->status == LIBUSB_TRANSFER_ERROR || transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
-            printf("Transfer fail! Attempting free. code %i\n", transfer->status);
+        if (transfer->status == LIBUSB_TRANSFER_ERROR ||
+            transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
+            printf("Transfer fail! Attempting free. code %i\n",
+                   transfer->status);
             libusb_free_transfer(transfer);
         }
 
         // Make sure transfer completed
         if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-            printf("Transfer unknown fail! Attempting cancel. code %i\n", transfer->status);
+            printf("Transfer unknown fail! Attempting cancel. code %i\n",
+                   transfer->status);
             libusb_cancel_transfer(instance->rx_transfer);
             return;
         }
