@@ -13,17 +13,13 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
+#pragma once
 
-/**
- * This is just a file of common includes.
- */
+namespace uss {
 
-// Most important: Creator class
-#include "creator.hpp"
+class BaseController {
+public:
+    virtual void Update() = 0;
+};
 
-// Drivers
-#include "driver/cdcacm/cdcacm.hpp"
-#include "driver/ch34x/ch34x.hpp"
-
-// Outputs
-#include "output/pty/pty.hpp"
+} // namespace uss

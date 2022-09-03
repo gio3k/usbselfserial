@@ -16,7 +16,21 @@
 #pragma once
 #include <stdint.h>
 
-typedef uint8_t u8_t;
-typedef uint16_t u16_t;
-typedef uint32_t u32_t;
-typedef uint64_t u64_t;
+namespace uss {
+
+class BaseDevice;
+class BaseDriver {
+public:
+    virtual void HandleDeviceInit(BaseDevice& device) = 0;
+    virtual void HandleDeviceConfigure(BaseDevice& device) = 0;
+    virtual void HandleDeviceUpdateLines(BaseDevice& device) = 0;
+    virtual void SetDeviceBreak(BaseDevice& device, bool value) = 0;
+    virtual void SetUpDevice(BaseDevice& device) = 0;
+
+    virtual uint8_t GetDeviceInEndpoint(BaseDevice& device) = 0;
+    virtual uint8_t GetDeviceOutEndpoint(BaseDevice& device) = 0;
+    virtual uint16_t GetDeviceInEndpointPacketSize(BaseDevice& device) = 0;
+    virtual uint16_t GetDeviceOutEndpointPacketSize(BaseDevice& device) = 0;
+};
+
+} // namespace uss
