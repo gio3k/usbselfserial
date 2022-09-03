@@ -13,15 +13,25 @@
  *     * (by the time you read this it could have a different name!)
  * - 2022
  */
+// Mostly defines from linux/include/uapi/linux/usb/ch9.h
 #pragma once
+#include <stdint.h>
 
 namespace uss {
+namespace driver {
+namespace usbvars {
 
-template <typename DeviceT> class BaseDriver {
-public:
-    virtual void HandleDeviceInit(DeviceT& device) = 0;
-    virtual void HandleDeviceConfigure(DeviceT& device) = 0;
-    virtual void HandleDeviceUpdateLines(DeviceT& device) = 0;
-};
+constexpr const uint8_t UsbTypeClass = (0x01 << 5);
+constexpr const uint8_t UsbRecipInterface = 0x01;
+constexpr const uint8_t UsbClassComm = 2;
+constexpr const uint8_t UsbClassCdcData = 0x0a;
 
+constexpr const uint8_t UsbDirIn = 0x20;
+constexpr const uint8_t UsbDirOut = 0x21;
+
+// Defines from linux/drivers/usb/class/cdc-acm.h
+constexpr const uint8_t UsbRtAcm = (UsbTypeClass | UsbRecipInterface);
+
+} // namespace usbvars
+} // namespace driver
 } // namespace uss

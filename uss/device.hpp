@@ -23,16 +23,18 @@ namespace uss {
 
 template <typename DeviceT = void> class BaseDevice {
 public:
-    BaudRate baud_rate;
-    DataBits data_bits;
-    Parity parity;
-    StopBits stop_bits;
-    bool rts, dtr;
+    BaudRate baud_rate = 9600;
+    DataBits data_bits = DataBits::DataBits_8;
+    Parity parity = Parity::Parity_None;
+    StopBits stop_bits = StopBits::StopBits_1;
+    bool rts = false, dtr = false;
 
     virtual libusb_device_handle* GetUsbHandle() = 0;
     virtual libusb_device* GetUsbDevice() = 0;
     virtual uint8_t GetInEndpoint() = 0;
     virtual uint8_t GetOutEndpoint() = 0;
+
+    virtual void Configure() = 0;
 
     virtual void SetDriver(BaseDriver<DeviceT>* driver) = 0;
 
