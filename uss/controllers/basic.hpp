@@ -27,12 +27,23 @@ class Basic : public BaseDevice, public BaseController {
 private:
     libusb_device_handle* usb_handle = 0x0;
     libusb_device* usb_device = 0x0;
+    ExpectedDeviceData expected;
 
 public:
-    Basic(uint16_t vid, uint16_t pid) {
-        usb_handle = libusb_open_device_with_vid_pid(NULL, vid, pid);
+    Basic(ExpectedDeviceData _expected) : expected(_expected) {
+        usb_handle =
+            libusb_open_device_with_vid_pid(NULL, expected.vid, expected.pid);
         if (usb_handle == NULL)
             throw error::NoDeviceException();
+        if (expected.port != 0 || expected.bus != 0) {
+            usb_device = libusb_get_device(usb_handle);
+            if (expected.port != libusb_get_port_number(usb_device) ||
+                expected.bus != libusb_get_bus_number(usb_device)) {
+                printf("Device with required vid & pid connected with "
+                       "unexpected bus or port\n");
+                throw error::NoDeviceException();
+            }
+        }
     }
 
     ~Basic() { libusb_close(usb_handle); }

@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     // Create a device
     // This uses the device 1a86:7523 and supports hotplug
     uss::ctl::Hotpluggable ctl(
-        0x1a86, 0x7523,
+        {0x1a86, 0x7523, 0, 0},
         [&output](uss::ctl::Hotpluggable* device) {
             output.SetDevice(device);
         }, // Device connected event

@@ -28,6 +28,7 @@ struct HotpluggableInstanceData {
     libusb_device_handle* provisional_usb_handle = 0x0;
     libusb_device_handle* usb_handle = 0x0;
     libusb_device* usb_device = 0x0;
+    ExpectedDeviceData expected;
     bool handle_disconnect = false;
 };
 
@@ -42,6 +43,15 @@ class Hotpluggable : public BaseDevice, public BaseController {
                                libusb_hotplug_event event, void* user_data) {
         HotpluggableInstanceData* instance =
             (HotpluggableInstanceData*)user_data;
+
+        if (instance->expected.port != 0 || instance->expected.bus != 0) {
+            if (instance->expected.port != libusb_get_port_number(dev) ||
+                instance->expected.bus != libusb_get_bus_number(dev)) {
+                printf("Device with required vid & pid connected with "
+                       "different bus");
+                return 0;
+            }
+        }
 
         if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED) {
             instance->usb_handle = NULL;
@@ -62,25 +72,44 @@ class Hotpluggable : public BaseDevice, public BaseController {
     }
 
 public:
-    Hotpluggable(uint16_t vid, uint16_t pid,
+    Hotpluggable(ExpectedDeviceData _expected,
                  std::function<void(Hotpluggable*)> _connect_callback = NULL,
                  std::function<void(Hotpluggable*)> _disconnect_callback = NULL)
         : connect_callback(_connect_callback),
           disconnect_callback(_disconnect_callback) {
+        instance.expected = _expected;
         int ret = libusb_hotplug_register_callback(
             NULL,
             static_cast<libusb_hotplug_event>(
                 LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED |
                 LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT),
-            LIBUSB_HOTPLUG_NO_FLAGS, vid, pid, LIBUSB_HOTPLUG_MATCH_ANY,
-            HotplugCallback, &instance, &callback_handle);
+            LIBUSB_HOTPLUG_NO_FLAGS, instance.expected.vid,
+            instance.expected.pid, LIBUSB_HOTPLUG_MATCH_ANY, HotplugCallback,
+            &instance, &callback_handle);
 
         if (ret < 0)
             throw error::LibUsbErrorException(
                 "Error on hotplug callback register", ret);
 
-        instance.provisional_usb_handle =
-            libusb_open_device_with_vid_pid(NULL, vid, pid);
+        instance.provisional_usb_handle = libusb_open_device_with_vid_pid(
+            NULL, instance.expected.vid, instance.expected.pid);
+        if (instance.provisional_usb_handle == NULL)
+            return;
+
+        if (instance.expected.port != 0 || instance.expected.bus != 0) {
+            instance.usb_device =
+                libusb_get_device(instance.provisional_usb_handle);
+            if (instance.expected.port !=
+                    libusb_get_port_number(instance.usb_device) ||
+                instance.expected.bus !=
+                    libusb_get_bus_number(instance.usb_device)) {
+                printf("Device with required vid & pid connected with "
+                       "unexpected bus or port\n");
+                instance.provisional_usb_handle = NULL;
+                instance.usb_device = NULL;
+                return;
+            }
+        }
     }
 
     ~Hotpluggable() {

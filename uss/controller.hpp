@@ -14,6 +14,7 @@
  * - 2022
  */
 #pragma once
+#include <stdint.h>
 
 namespace uss {
 
@@ -21,5 +22,14 @@ class BaseController {
 public:
     virtual void Update() = 0;
 };
+
+namespace ctl {
+
+struct ExpectedDeviceData {
+    uint16_t vid, pid;
+    uint8_t bus, port;
+};
+
+} // namespace ctl
 
 } // namespace uss
