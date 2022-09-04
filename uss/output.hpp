@@ -15,6 +15,7 @@
  */
 #pragma once
 #include "device.hpp"
+#include <functional>
 
 namespace uss {
 
@@ -22,9 +23,12 @@ class BaseOutput {
 public:
     BaseOutput(BaseDevice* _device) : device(_device) {}
 
-    virtual void Update() = 0;
+    virtual void HandleEvents() = 0;
     virtual void SetDevice(BaseDevice* _device) = 0;
     virtual void RemoveDevice() = 0;
+    virtual void EndTransfers(std::function<void(int)> callback = NULL) = 0;
+    virtual void
+    SetTransferCompletionCallback(std::function<void(int)> callback) = 0;
 
 protected:
     BaseDevice* device;
