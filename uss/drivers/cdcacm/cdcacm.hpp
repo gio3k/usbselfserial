@@ -41,13 +41,13 @@ class CdcAcmDriver : public BaseDriver {
 
 public:
     void HandleDeviceConfigure(BaseDevice& device) override {
-        if ((int)device.data_bits >= sizeof(DataBitsConverter))
+        if ((uint32_t)device.data_bits >= sizeof(DataBitsConverter))
             throw error::InvalidDeviceConfigException("data_bits",
                                                       (int)device.data_bits);
-        if ((int)device.stop_bits >= sizeof(StopBitsConverter))
+        if ((uint32_t)device.stop_bits >= sizeof(StopBitsConverter))
             throw error::InvalidDeviceConfigException("stop_bits",
                                                       (int)device.stop_bits);
-        if ((int)device.parity >= sizeof(ParityConverter))
+        if ((uint32_t)device.parity >= sizeof(ParityConverter))
             throw error::InvalidDeviceConfigException("parity",
                                                       (int)device.parity);
 
@@ -95,7 +95,7 @@ public:
 
         // For each configuration.. (with the amount of them found in the device
         // descriptor)
-        for (int ic = 0; ic < device_descriptor.bNumConfigurations; ic++) {
+        for (uint8_t ic = 0; ic < device_descriptor.bNumConfigurations; ic++) {
             // Get the configuration descriptor
             libusb_get_config_descriptor(device.GetUsbDevice(), ic,
                                          &config_descriptor);
@@ -222,7 +222,7 @@ public:
             .out_endpoint_packet_size;
     }
 
-    void SetDeviceBreak(BaseDevice &device, bool value) override {
+    void SetDeviceBreak(BaseDevice& device, bool value) override {
         SendDeviceControlMessage(device, ctl::SetBreak, value ? 0xffff : 0);
     }
 };
