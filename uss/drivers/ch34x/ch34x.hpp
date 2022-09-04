@@ -290,10 +290,12 @@ public:
                                         device_data.interface)) {
             ret = libusb_detach_kernel_driver(device.GetUsbHandle(),
                                               device_data.interface);
-            if (ret != 0) {
+            if (ret < 0) {
                 printf("Failed to detach kernel driver from interface, code %i "
                        "(%s)\n",
                        ret, libusb_error_name(ret));
+                throw error::UsbAccessException(
+                    "Failed to detach kernel driver from interface");
             }
         }
 
@@ -301,19 +303,22 @@ public:
                                         device_data.interface)) {
             ret = libusb_detach_kernel_driver(device.GetUsbHandle(),
                                               device_data.interface);
-            if (ret != 0) {
+            if (ret < 0) {
                 printf("Failed to detach kernel driver from interface, code %i "
                        "(%s)\n",
                        ret, libusb_error_name(ret));
+                throw error::UsbAccessException(
+                    "Failed to detach kernel driver from interface");
             }
         }
 
         // Claim interfaces
         ret = libusb_claim_interface(device.GetUsbHandle(),
                                      device_data.interface);
-        if (ret != 0) {
+        if (ret < 0) {
             printf("Failed to claim interface, code %i (%s)\n", ret,
                    libusb_error_name(ret));
+            throw error::UsbAccessException("Failed to claim interface");
         }
     }
 

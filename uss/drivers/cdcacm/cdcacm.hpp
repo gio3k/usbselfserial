@@ -169,10 +169,13 @@ public:
                                         device_data.comm_interface)) {
             ret = libusb_detach_kernel_driver(device.GetUsbHandle(),
                                               device_data.comm_interface);
-            if (ret != 0) {
+            if (ret < 0) {
                 printf("Failed to detach kernel driver from CDC Communication "
                        "interface, code %i (%s)\n",
                        ret, libusb_error_name(ret));
+                throw error::UsbAccessException(
+                    "Failed to detach kernel driver from CDC Communication "
+                    "interface");
             }
         }
 
@@ -180,27 +183,33 @@ public:
                                         device_data.data_interface)) {
             ret = libusb_detach_kernel_driver(device.GetUsbHandle(),
                                               device_data.data_interface);
-            if (ret != 0) {
+            if (ret < 0) {
                 printf("Failed to detach kernel driver from CDC Data "
                        "interface, code %i (%s)\n",
                        ret, libusb_error_name(ret));
+                throw error::UsbAccessException(
+                    "Failed to detach kernel driver from CDC Data interface");
             }
         }
 
         // Claim interfaces
         ret = libusb_claim_interface(device.GetUsbHandle(),
                                      device_data.comm_interface);
-        if (ret != 0) {
+        if (ret < 0) {
             printf(
                 "Failed to claim CDC Communication interface, code %i (%s)\n",
                 ret, libusb_error_name(ret));
+            throw error::UsbAccessException(
+                "Failed to claim CDC Communication interface");
         }
 
         ret = libusb_claim_interface(device.GetUsbHandle(),
                                      device_data.data_interface);
-        if (ret != 0) {
+        if (ret < 0) {
             printf("Failed to claim CDC Data interface, code %i (%s)\n", ret,
                    libusb_error_name(ret));
+            throw error::UsbAccessException(
+                "Failed to claim CDC Data interface");
         }
     }
 
