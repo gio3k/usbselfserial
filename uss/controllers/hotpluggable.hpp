@@ -83,6 +83,11 @@ public:
             libusb_open_device_with_vid_pid(NULL, vid, pid);
     }
 
+    ~Hotpluggable() {
+        libusb_hotplug_deregister_callback(NULL, callback_handle);
+        libusb_close(instance.usb_handle);
+    }
+
     libusb_device* GetUsbDevice() override {
         if (instance.usb_handle == NULL)
             return NULL;

@@ -35,6 +35,8 @@ public:
             throw error::NoDeviceException();
     }
 
+    ~Basic() { libusb_close(usb_handle); }
+
     libusb_device* GetUsbDevice() override {
         if (usb_handle == NULL)
             return NULL;
