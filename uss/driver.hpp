@@ -21,6 +21,8 @@ namespace uss {
 class BaseDevice;
 class BaseDriver {
 public:
+    virtual ~BaseDriver() {}
+
     virtual void HandleDeviceInit(BaseDevice& device) = 0;
     virtual void HandleDeviceConfigure(BaseDevice& device) = 0;
     virtual void HandleDeviceUpdateLines(BaseDevice& device) = 0;
