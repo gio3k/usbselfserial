@@ -17,10 +17,12 @@
 #include "../../device.hpp"
 #include "../../error.hpp"
 #include "../../output.hpp"
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <string>
 #include <sys/fcntl.h> // F_*
+#include <sys/poll.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #if defined(__APPLE__)
@@ -39,10 +41,20 @@ public:
 };
 
 struct PtyOutputInstanceData {
-    int mfd, sfd;
-    struct libusb_transfer* rx_transfer;
-    uint8_t rx_buffer[1024];
-    uint8_t tx_buffer[1024];
+    // pty
+    int mfd = 0, sfd = 0;
+
+    // rx_transfer (usb -> pty)
+    struct libusb_transfer* rx_transfer = NULL;
+    uint8_t rx_buffer[1024] = {0};
+
+    // tx_transfer (pty -> usb)
+    struct libusb_transfer* tx_transfer = NULL;
+    uint8_t tx_buffer[1024] = {0};
+    bool tx_sending = false;
+    bool tx_allow = true;
+
+    std::function<void(int)> transfer_end_callback = NULL;
 };
 
 class PtyOutput : public BaseOutput {
@@ -56,24 +68,29 @@ class PtyOutput : public BaseOutput {
         PtyOutputInstanceData* instance =
             (PtyOutputInstanceData*)transfer->user_data;
 
-        if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
-            printf("Transfer cancelled! Attempting free. code %i\n",
-                   transfer->status);
-            libusb_free_transfer(transfer);
-            return;
-        }
-
-        if (transfer->status == LIBUSB_TRANSFER_ERROR ||
+        if (transfer->status == LIBUSB_TRANSFER_CANCELLED ||
+            transfer->status == LIBUSB_TRANSFER_ERROR ||
             transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
-            printf("Transfer fail! Attempting free. code %i\n",
-                   transfer->status);
-            libusb_free_transfer(transfer);
+            printf("RX transfer fail. code %i (%s)\n", transfer->status,
+                   libusb_error_name(transfer->status));
+
+            if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
+                printf("Trying to free cancelled transfer!\n");
+                libusb_free_transfer(transfer);
+            }
+
+            instance->rx_transfer = NULL; // Just assume transfer is gone
+            if (instance->tx_transfer == NULL)
+                if (instance->transfer_end_callback != NULL)
+                    instance->transfer_end_callback(0);
+            return;
         }
 
         // Make sure transfer completed
         if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
-            printf("Transfer unknown fail! Attempting cancel. code %i\n",
-                   transfer->status);
+            printf(
+                "RX transfer unknown fail. Trying to cancel it. code %i (%s)\n",
+                transfer->status, libusb_error_name(transfer->status));
             libusb_cancel_transfer(instance->rx_transfer);
             return;
         }
@@ -84,19 +101,65 @@ class PtyOutput : public BaseOutput {
         // Resubmit transfer
         int ret = libusb_submit_transfer(instance->rx_transfer);
         if (ret < 0) {
-            printf("Failed to submit RX transfer! code %i (%s)\n", ret,
-                   libusb_error_name(ret));
+            printf("Failed to submit RX transfer. Cancelling! code %i (%s)\n",
+                   ret, libusb_error_name(ret));
             libusb_cancel_transfer(instance->rx_transfer);
         }
     }
 
+    // pty [->] PtyOutput -> usb
+    static void LIBUSB_CALL TransmitCallback(struct libusb_transfer* transfer) {
+        PtyOutputInstanceData* instance =
+            (PtyOutputInstanceData*)transfer->user_data;
+
+        if (transfer->status == LIBUSB_TRANSFER_CANCELLED ||
+            transfer->status == LIBUSB_TRANSFER_ERROR ||
+            transfer->status == LIBUSB_TRANSFER_NO_DEVICE) {
+            printf("TX transfer fail. code %i (%s)\n", transfer->status,
+                   libusb_error_name(transfer->status));
+
+            if (transfer->status == LIBUSB_TRANSFER_CANCELLED) {
+                printf("Trying to free cancelled transfer!\n");
+                libusb_free_transfer(transfer);
+            }
+
+            instance->tx_transfer = NULL; // Just assume transfer is gone
+            if (instance->rx_transfer == NULL)
+                if (instance->transfer_end_callback != NULL)
+                    instance->transfer_end_callback(0);
+            return;
+        }
+
+        // Make sure transfer completed
+        if (transfer->status != LIBUSB_TRANSFER_COMPLETED) {
+            printf(
+                "TX transfer unknown fail. Trying to cancel it. code %i (%s)\n",
+                transfer->status, libusb_error_name(transfer->status));
+            libusb_cancel_transfer(instance->tx_transfer);
+            return;
+        }
+
+        // Turn off sending bool
+        instance->tx_sending = false;
+    }
+
+    /**
+     * Create basic pty @ instance.mfd, instance.sfd
+     */
     void CreatePty() {
         int ret;
+
+        if (instance.mfd != 0) {
+            printf("Can't open pty with already existing pty!\n");
+            return;
+        }
 
         // Open pty
         ret = openpty(&instance.mfd, &instance.sfd, NULL, NULL, NULL);
         if (ret != 0)
             throw PtyError();
+
+        printf("new pty@%i\n", instance.mfd);
 
         // Configure pty
         struct termios config;
@@ -128,39 +191,78 @@ class PtyOutput : public BaseOutput {
             printf("symlink failure! code %i\n", ret);
     }
 
+    /**
+     * Close open pty
+     */
+    void ClosePty() {
+        // Close previous pty
+        if (instance.mfd != 0)
+            close(instance.mfd);
+        else
+            printf("No pty open to close!\n");
+        instance.mfd = 0;
+        instance.sfd = 0;
+    }
+
 public:
     PtyOutput(BaseDevice* _device, const char* _location,
               bool _retain_pty = false)
-        : BaseOutput(_device), retain_pty(_retain_pty), location(_location) {
+        : BaseOutput(_device), location(_location), retain_pty(_retain_pty) {
 
         CreatePty();
         SetDevice(device);
     }
 
-    void Update() override {
+    void HandleEvents() override {
         if (device == NULL)
             return;
 
-        int ret;
+        if (instance.tx_sending)
+            return;
 
-        // Set buffer to fully 0
-        memset(instance.tx_buffer, 0, sizeof(instance.tx_buffer));
+        if (!instance.tx_allow)
+            return;
 
-        // Read from pty fd
-        ret = read(instance.mfd, instance.tx_buffer,
+        ssize_t len;
+        pollfd pfds[1] = {{instance.mfd, POLLIN, 0}};
+
+        // Poll pty fd
+        poll(pfds, 1, -1);
+        if (!(pfds->revents & POLLIN))
+            return;
+
+        // Read from pty fd into buffer queue
+        len = read(instance.mfd, instance.tx_buffer,
                    device->GetOutEndpointPacketSize());
-        if (ret == -1) {
+
+        if (len == -1) {
             if (errno != EAGAIN)
                 printf("Error reading from pty fd! code %i\n", errno);
             return;
         }
 
-        if (ret == 0)
+        if (len == 0)
+            return;
+
+        // Make sure device still exists before sending
+        if (device == NULL)
             return;
 
         // Send to USB
-        libusb_bulk_transfer(device->GetUsbHandle(), device->GetOutEndpoint(),
-                             instance.tx_buffer, ret, NULL, TransferTimeout);
+        if (!instance.tx_allow)
+            return;
+
+        instance.tx_sending = true;
+        libusb_fill_bulk_transfer(instance.tx_transfer, device->GetUsbHandle(),
+                                  device->GetOutEndpoint(), instance.tx_buffer,
+                                  (int)len, TransmitCallback, &instance,
+                                  TransferTimeout);
+
+        int ret = libusb_submit_transfer(instance.tx_transfer);
+        if (ret < 0) {
+            printf("Failed to submit TX transfer. code %i (%s)\n", ret,
+                   libusb_error_name(ret));
+        }
     }
 
     void SetDevice(BaseDevice* _device) override {
@@ -170,11 +272,12 @@ public:
 
         int ret;
 
-        if (!retain_pty)
-            CreatePty();
+        // Attempt to create pty
+        CreatePty();
 
         // Allocate transfers
         instance.rx_transfer = libusb_alloc_transfer(0);
+        instance.tx_transfer = libusb_alloc_transfer(0);
 
         // Set up transfers
         if (device->GetInEndpointPacketSize() > sizeof(instance.rx_buffer))
@@ -187,7 +290,10 @@ public:
                                   device->GetInEndpointPacketSize(),
                                   ReceiveCallback, &instance, TransferTimeout);
 
-        // Submit transfers
+        // Allow tx transfers again
+        instance.tx_allow = true;
+
+        // Submit rx transfer
         ret = libusb_submit_transfer(instance.rx_transfer);
         if (ret < 0) {
             printf("libusb_submit_transfer failure! code %i (%s)\n", ret,
@@ -198,8 +304,47 @@ public:
 
     void RemoveDevice() override {
         device = NULL;
-        if (instance.rx_transfer != NULL)
+        instance.tx_allow = false;
+
+        if (!retain_pty)
+            ClosePty();
+
+        if (instance.rx_transfer != NULL) {
+            printf("RemoveDevice() called with active transfer. This is "
+                   "dangerous, use EndTransfers first!\n");
+            EndTransfers();
+        }
+        if (instance.tx_transfer != NULL) {
+            printf("RemoveDevice() called with active transfer. This is "
+                   "dangerous, use EndTransfers first!\n");
+            EndTransfers();
+        }
+    }
+
+    void EndTransfers(std::function<void(int)> callback = NULL) override {
+        instance.tx_allow = false;
+        instance.tx_sending = false;
+        if (callback != NULL)
+            SetTransferCompletionCallback(callback);
+        if (instance.rx_transfer != NULL) {
             libusb_cancel_transfer(instance.rx_transfer);
+        } else {
+            printf("RX transfer is already null.\n");
+        }
+        if (instance.tx_transfer != NULL) {
+            libusb_cancel_transfer(instance.tx_transfer);
+        } else {
+            printf("TX transfer is already null.\n");
+        }
+
+        if (instance.rx_transfer == NULL && instance.tx_transfer == NULL)
+            if (instance.transfer_end_callback != NULL)
+                instance.transfer_end_callback(1);
+    }
+
+    void
+    SetTransferCompletionCallback(std::function<void(int)> callback) override {
+        instance.transfer_end_callback = callback;
     }
 };
 
