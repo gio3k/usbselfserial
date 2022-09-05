@@ -4,7 +4,8 @@ It gives an operating system without USB serial support (like iOS) the ability t
 
 ## Warning ⚠️
 usbselfserial is currently very experimental. \
-It only supports CDC ACM and CH34X devices at the moment (but please feel free to PR a new driver)
+It's undocumented and only supports CDC ACM and CH34X devices at the moment (but please feel free to PR a new driver) \
+While it does work, it's definitely not production ready at the moment!
 
 ## Example compilation
 To compile the example, you just need libusb and a C++11 capable compiler.
