@@ -60,6 +60,15 @@ public:
     const char* what() const throw() override { return msg.c_str(); }
 };
 
+class UsbAccessException : public std::exception {
+    std::string msg;
+
+public:
+    UsbAccessException(const std::string& reason)
+        : msg("Permission error: " + reason) {}
+    const char* what() const throw() override { return msg.c_str(); }
+};
+
 class LibUsbErrorException : public std::exception {
     int lusb_code;
     std::string msg;
